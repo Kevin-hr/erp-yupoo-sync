@@ -30,7 +30,10 @@
 4. ROI-negative scenarios are blocked at router level before any agent chain executes
 5. Circuit breaker triggers and returns circuit_open error after 5 agent hops
 
-**Plans:** TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 01-foundation-router/01-PLAN.md — Foundation: types.py, config.py, router with ROI guard and circuit breaker, CLI entry point
 
 ---
 
