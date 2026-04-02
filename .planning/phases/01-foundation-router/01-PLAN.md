@@ -44,6 +44,9 @@ must_haves:
       exports: "run_cli"
     - path: "decision_system/__main__.py"
       provides: "Entry point: python -m decision_system"
+    - path: "decision_system/workflow.py"
+      provides: "Workflow orchestrator with sequential dispatch mode"
+      exports: "DecisionWorkflow, dispatch_agents"
   key_links:
     - from: "decision_system/router.py"
       to: "decision_system/types.py"
@@ -61,6 +64,14 @@ must_haves:
       to: "decision_system/config.py"
       via: "import LOG_FILE"
       pattern: "from config import LOG_FILE"
+    - from: "decision_system/workflow.py"
+      to: "decision_system/router.py"
+      via: "import DecisionRouter"
+      pattern: "from router import"
+    - from: "decision_system/workflow.py"
+      to: "decision_system/circuit_breaker.py"
+      via: "import CircuitBreaker"
+      pattern: "from circuit_breaker import"
 ---
 
 <objective>
@@ -78,6 +89,7 @@ Build foundational type system, decision router with ROI guard and circuit break
 - 全中文输出，JSON dataclass 输出
 - Graceful degradation，单个 Agent 失败降级
 - JSONL 文件日志
+- Workflow: sequential dispatch only (Phase 4 adds parallel)
 
 **Stack:**
 - httpx 0.28.1 confirmed installed
@@ -87,7 +99,7 @@ Build foundational type system, decision router with ROI guard and circuit break
 
 **Existing code to extend:**
 - `C:\Users\Administrator\.claude\skills\decision-cognition-skill\agents\router.py` — proven keyword patterns for scene classification and conflict extraction
-- `C:\Users\Administrator\.claude\skills\decision-cognition-skill\workflow.py` — agent dispatch patterns
+- `C:\Users\Administrator\.claude\skills\decision-cognition-skill\workflow.py` — agent dispatch patterns (sequential reference, parallel is Phase 4)
 </context>
 
 <tasks>
@@ -299,11 +311,11 @@ LLM_MODEL: str = "gpt-4"
 </task>
 
 <task type="auto" tdd="false">
-  <name>Task 2: router.py + circuit_breaker.py + logging_utils.py + cli.py + __main__.py</name>
-  <files>decision_system/router.py, decision_system/circuit_breaker.py, decision_system/logging_utils.py, decision_system/cli.py, decision_system/__main__.py</files>
+  <name>Task 2: router.py + circuit_breaker.py + logging_utils.py + cli.py + __main__.py + workflow.py</name>
+  <files>decision_system/router.py, decision_system/circuit_breaker.py, decision_system/logging_utils.py, decision_system/cli.py, decision_system/__main__.py, decision_system/workflow.py</files>
   <action>
 ## Goal
-Build the complete router with all guards (ROI, circuit breaker, timeout) and CLI entry point.
+Build the complete router with all guards (ROI, circuit breaker, timeout) and CLI entry point, plus the sequential-dispatch workflow orchestrator (INFRA-02).
 
 ## circuit_breaker.py
 
@@ -414,6 +426,133 @@ def check_roi(user_input: str, roi_value: Optional[float] = None) -> tuple[ROISt
 4. Main conflict extraction (CORE-02, META-02)
 5. Return RouterResult with recommended_agents based on scene type (CORE-04)
 
+## workflow.py (INFRA-02: Sequential dispatch orchestrator)
+
+Create `decision_system/workflow.py` — workflow orchestrator that calls agents sequentially (parallel dispatch is Phase 4):
+
+```python
+"""Workflow orchestrator — sequential agent dispatch (INFRA-02)"""
+from typing import Optional, List, Dict, Any
+from dataclasses import dataclass, field
+
+from router import DecisionRouter
+from circuit_breaker import CircuitBreaker
+from config import MAX_HOPS, LLM_TIMEOUT
+
+@dataclass
+class WorkflowResult:
+    """Workflow execution result"""
+    router_result: Optional[Dict[str, Any]] = None
+    agent_results: List[Dict[str, Any]] = field(default_factory=list)
+    circuit_open: bool = False
+    circuit_error: Optional[Dict[str, Any]] = None
+    final_decision: Optional[str] = None
+    final_action: Optional[str] = None
+
+class DecisionWorkflow:
+    """
+    Workflow orchestrator with sequential dispatch mode.
+    Phase 1: sequential only. Phase 4 adds parallel dispatch.
+    """
+
+    def __init__(self):
+        self.router = DecisionRouter()
+        self.circuit_breaker = CircuitBreaker(max_hops=MAX_HOPS)
+        self.name = "DecisionWorkflow"
+        self.version = "1.0"
+
+    def dispatch_agents(
+        self,
+        user_input: str,
+        agent_list: List[str],
+        router_result: Dict[str, Any]
+    ) -> WorkflowResult:
+        """
+        Dispatch agents SEQUENTIALLY (Phase 1 behavior).
+        Phase 4 will add parallel dispatch via asyncio.gather.
+
+        Each agent is called in order. If circuit breaker trips mid-stream,
+        remaining agents are skipped and circuit_open=True is returned.
+
+        Args:
+            user_input: raw user decision description
+            agent_list: list of agent IDs from router.recommended_agents
+            router_result: already-computed RouterResult dict
+
+        Returns:
+            WorkflowResult with agent_results populated in sequence order
+        """
+        result = WorkflowResult(router_result=router_result)
+
+        for agent_id in agent_list:
+            # Check circuit breaker BEFORE each dispatch
+            if self.circuit_breaker.check():
+                result.circuit_open = True
+                result.circuit_error = self.circuit_breaker.get_error()
+                return result
+
+            # Record hop
+            self.circuit_breaker.record_hop()
+
+            # Call agent (stubbed — Phase 2+ provides real agent implementations)
+            agent_result = self._call_agent(agent_id, user_input, router_result)
+            result.agent_results.append(agent_result)
+
+        return result
+
+    def _call_agent(
+        self,
+        agent_id: str,
+        user_input: str,
+        router_result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Call a single agent by ID.
+        Phase 1: returns stub result. Phase 2+ wires real agents.
+        """
+        # Stub: return placeholder result until Phase 2 agent implementations
+        return {
+            "agent_id": agent_id,
+            "status": "stub",
+            "conclusion": f"[STUB] {agent_id} called for: {user_input[:50]}..."
+        }
+
+    def run(self, user_input: str) -> WorkflowResult:
+        """
+        Full workflow: ROI check → router → sequential agent dispatch.
+
+        Args:
+            user_input: user decision description
+
+        Returns:
+            WorkflowResult
+        """
+        # Step 1: Router analysis
+        router_result = self.router.analyze(user_input)
+        router_dict = router_result.to_json() if hasattr(router_result, 'to_json') else {}
+
+        # Step 2: ROI guard (META-01)
+        if router_dict.get("roi_blocked"):
+            result = WorkflowResult(router_result=router_dict)
+            result.final_decision = "ROI为负，决策阻断"
+            result.final_action = "不做任何资源投入"
+            return result
+
+        # Step 3: Sequential agent dispatch (INFRA-02)
+        agent_list = router_dict.get("recommended_agents", [])
+        result = self.dispatch_agents(user_input, agent_list, router_dict)
+
+        # Step 4: Simple arbitration (stub — Phase 3+ expands)
+        if result.agent_results:
+            result.final_decision = result.agent_results[-1].get("conclusion", "已分析")
+            result.final_action = "参考以上agent结论做决定"
+        else:
+            result.final_decision = "快速决策路径"
+            result.final_action = "可直接执行"
+
+        return result
+```
+
 ## cli.py + __main__.py
 
 **cli.py:**
@@ -475,12 +614,13 @@ if __name__ == "__main__":
 2. `python -m decision_system "要不要今天中午吃什么"` — returns fast recommendation (trivial path)
 3. `python -m decision_system "要不要免费送鞋给这个0粉丝网红"` — returns 【ROI拦截】
 4. `python -m decision_system --help` — shows usage
+5. `python -c "from workflow import DecisionWorkflow, dispatch_agents; w = DecisionWorkflow(); print(w.name, w.version)"` — imports and prints version
 </action>
   <verify>
     <automated>pytest decision_system/tests/test_router.py decision_system/tests/test_circuit_breaker.py decision_system/tests/test_cli.py decision_system/tests/test_logging.py -v</automated>
   </verify>
   <done>
-    Router classifies scene type, identifies main conflict, blocks ROI-negative, fast path returns within 2s, circuit breaker trips at hop 5, CLI outputs Chinese, decisions logged to JSONL
+    Router classifies scene type, identifies main conflict, blocks ROI-negative, fast path returns within 2s, circuit breaker trips at hop 5, CLI outputs Chinese, decisions logged to JSONL, workflow dispatch_agents() calls agents sequentially
   </done>
 </task>
 
@@ -492,10 +632,11 @@ if __name__ == "__main__":
 1. **CORE-01 + CORE-02 + META-02:** `python -m decision_system "我要不要花5000块投这个网红"` — scene_type != BLOCKED, main_conflict extracted
 2. **CORE-03 (2-min SLA):** Wall-clock timing of trivial input — < 2000ms
 3. **CORE-04:** Major scenario returns recommended_agents list non-empty
-4. **INFRA-03:** After 5 agent dispatch calls, circuit breaker returns circuit_open
-5. **INFRA-01:** Pydantic validation rejects empty conflict string
-6. **META-01:** ROI-negative input blocked before any agent dispatch
-7. **OUT-02:** decisions.jsonl contains appended record after each run
+4. **INFRA-02:** `dispatch_agents()` calls agents sequentially; parallel dispatch not used
+5. **INFRA-03:** After 5 agent dispatch calls, circuit breaker returns circuit_open
+6. **INFRA-01:** Pydantic validation rejects empty conflict string
+7. **META-01:** ROI-negative input blocked before any agent dispatch
+8. **OUT-02:** decisions.jsonl contains appended record after each run
 </verification>
 
 <success_criteria>
@@ -504,6 +645,7 @@ if __name__ == "__main__":
 3. Trivial/reversible decisions return fast recommendation without invoking full agent chain
 4. ROI-negative scenarios are blocked at router level before agent chain executes
 5. Circuit breaker triggers and returns circuit_open error after 5 agent hops
+6. Workflow orchestrator (INFRA-02) dispatches agents sequentially via dispatch_agents()
 </success_criteria>
 
 <output>
