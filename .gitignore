@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Logs
+logs/
+*.log
+
+# State files
+logs/mrshop_upload_state.json
+
+# Screenshots
+screenshots/
+
+# Cookies
+cookies.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Editor
+.vscode/
+.idea/
+
+# Local .claude settings (private)
+.claude/settings.json
