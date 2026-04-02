@@ -74,7 +74,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -85,28 +85,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-01 | Phase 1 | Pending |
 | INFRA-02 | Phase 1 | Pending |
 | INFRA-03 | Phase 1 | Pending |
+| META-01 | Phase 1 | Pending |
+| META-02 | Phase 1 | Pending |
 | AGENT-01 | Phase 2 | Pending |
 | AGENT-02 | Phase 2 | Pending |
 | OUT-01 | Phase 2 | Pending |
 | OUT-02 | Phase 2 | Pending |
 | OUT-03 | Phase 2 | Pending |
-| AGENT-03 | Phase 3 | Pending |
-| AGENT-04 | Phase 3 | Pending |
-| AGENT-05 | Phase 3 | Pending |
 | BIZ-01 | Phase 2 | Pending |
 | BIZ-02 | Phase 2 | Pending |
 | BIZ-03 | Phase 2 | Pending |
 | BIZ-04 | Phase 2 | Pending |
-| META-01 | Phase 1 | Pending |
-| META-02 | Phase 1 | Pending |
 | META-03 | Phase 2 | Pending |
+| AGENT-03 | Phase 3 | Pending |
+| AGENT-04 | Phase 3 | Pending |
+| AGENT-05 | Phase 3 | Pending |
 | META-04 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 22 total
 - Mapped to phases: 22
-- Unmapped: 0 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after research synthesis*
+*Last updated: 2026-04-02 after roadmap creation*
