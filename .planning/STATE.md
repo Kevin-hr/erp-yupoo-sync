@@ -74,3 +74,8 @@
 - `.planning/ROADMAP.md` — 4-phase roadmap with success criteria
 - `.planning/STATE.md` — Project state tracker
 - `.planning/REQUIREMENTS.md` — Updated traceability (22/22 mapped)
+- `.planning/phases/01-foundation-router/01-CONTEXT.md` — Phase 1 implementation context
+
+**Session: 2026-04-02**
+- Completed discuss-phase 1
+- Decisions: types.py集中, ROI硬编码, max_hops=5, CLI单次命令, 全中文, graceful degradation, JSONL日志
