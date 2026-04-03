@@ -15,12 +15,13 @@
 
 | Phase | Goal | Status |
 |-------|------|--------|
-| 1. Foundation + Router | Core types, decision router, ROI guard, circuit breaker | Not started |
+| 1. Foundation + Router | Core types, decision router, ROI guard, circuit breaker | Completed |
 | 2. Primary Decision Loop | Wise Decider, Bias Scanner, output, WH business rules | Not started |
 | 3. Extended Agents | Reverse, Second-Order, First-Principles thinkers | Not started |
 | 4. Orchestration + External Validation Stub | Workflow orchestration, conflict resolution, 群众路线 placeholder | Not started |
 
-**Progress:** 0/4 phases complete
+**Progress:** 1/4 phases complete
+
 
 ## Performance Metrics
 

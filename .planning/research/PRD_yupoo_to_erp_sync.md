@@ -5,6 +5,14 @@
 
 ---
 
+## 0. 核心架构 (Industrialized Architecture)
+本项目遵循 **"Cloud-First & Pipeline-Based"** 工业化架构：
+1. **SSOT (唯一事实来源)**: 采集的数据将通过 `product_batch.json` 并在未来对接 Feishu Bitable 进行审计。
+2. **Decoupling (解耦)**: 浏览器上下文完全隔离，敏感信息仅存放于 `.env`。
+3. **Resumability (可恢复性)**: 每个步骤均有状态持久化，支持断点续传。
+
+---
+
 ## 1. Background & Problem (背景与问题)
 
 当前上架流程为纯手工操作，需要人工：
@@ -109,6 +117,11 @@ CLI 触发 / 定时任务
 - **并发**: ERP Agent 支持多 Worker 并发（默认 ≤3，防止账号风控）
 - **图片上限**: 每品 ≤ 14 张（第 15 位预留给尺码表图片）
 - **会话管理**: 两平台各自维护独立的登录 Cookie，定期刷新
+
+### 5.2 技术红线 (Technical Red Lines)
+1. **ASCII Only**: 所有生成的控制脚本 (.py除外, 主要是.ps1/.bat) 必须为纯英文字符。
+2. **Concurrent ≤ 3**: 严禁突破并发上限，保障 MrShopPlus 账号安全。
+3. **Screenshots Mandatory**: 每一单保存前必须截取 `Saving...` 状态及结果。
 
 ---
 
