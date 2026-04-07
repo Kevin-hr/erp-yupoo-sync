@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - text: 
+  - generic [ref=e3]:
+    - link "Yupoo" [ref=e5] [cursor=pointer]:
+      - /url: //x.yupoo.com
+      - img "Yupoo" [ref=e6]
+    - text:   
+    - generic [ref=e7]:
+      - text: 登录
+      - link "注册" [ref=e9] [cursor=pointer]:
+        - /url: https://x.yupoo.com/register
+      - generic [ref=e10] [cursor=pointer]: 
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - generic [ref=e14]: 九龙-服饰，包包，配饰
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - searchbox "搜索相册/图片" [ref=e18]
+          - img "searchIcon" [ref=e19] [cursor=pointer]
+          - button "搜索" [ref=e20] [cursor=pointer]
+        - text:     
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - link "首页" [ref=e24] [cursor=pointer]:
+          - /url: /albums
+        - link "相册" [ref=e25] [cursor=pointer]:
+          - /url: /albums?tab=gallery
+        - link "联系档案" [ref=e26] [cursor=pointer]:
+          - /url: /contact
+      - generic [ref=e28]:
+        - text: 扫一扫 手机看
+        - img "qrcode" [ref=e29]
+  - generic [ref=e31]:
+    - img [ref=e32]
+    - paragraph [ref=e33]: 主页已加密，请输入密码
+    - generic [ref=e34]:
+      - textbox [ref=e35]
+      - generic [ref=e36] [cursor=pointer]: 记住7天
+    - text: 
+    - generic [ref=e40] [cursor=pointer]: 确定
+  - generic [ref=e42]:
+    - paragraph [ref=e43]: 风险提示：本站页面内图片、视频内容仅做展示使用。如因上传、制作的内容，或者其他行为涉及侵犯其他任何第三方合法权益的，用户以其侵权行为承担相应的法律责任，包括但不限于停止侵害、排除妨碍、损害赔偿责任等。
+    - paragraph [ref=e44]:
+      - text: © 2005-2026 yupoo.com, all rights reserved.
+      - link "policeIcon 浙公网安备 33010502006611 号" [ref=e45] [cursor=pointer]:
+        - /url: http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=33010502006611
+        - img "policeIcon" [ref=e46]
+        - text: 浙公网安备 33010502006611 号
+    - generic [ref=e47]:
+      - text: 简体中文
+      - generic: 
+    - paragraph

@@ -17,6 +17,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **独立浏览器上下文** | Yupoo/MrShopPlus 禁止共享Cookie | 会话污染               |
 | **保存前截图**       | 每单必须留证                    | 无法追溯"假同步"       |
 | **ASCII Only**       | .ps1/.bat严禁中文               | PowerShell 5.1解析错误 |
+| **描述禁图防沉余** | 商品描述(Rich Text)严禁包含任何图片，必须使用JS强杀 `<img>` 标签 | 页面排版崩溃/违反建站规范 |
+| **强制双参校验**   | 必须提供真实 Brand & Product Name 进行第一行格式化。严禁空参跳过 | 信息残缺/劣质商品展示 |
+| **严格静态类型校验**| 列表切片(如 `urls[:14]`)和关键变量必须含显式类型标注 (`cast`)| 引发 `list[Unknown]` 阻塞编译/运行截断 |
+| **导入强隔离检测** | 对核心依赖(如Playwright)实施前置 `try/except ImportError` 断言 | 运行时挂掉/环境未对齐导致静默失败 |
+| **审计汇报纯客观** | 所有审计与总结必须输出 `.html` 数据报告，严禁主观评价，必须呈递原始数字 | AI幻觉/主观判断掩盖异常真相 |
 
 ---
 
@@ -154,7 +159,7 @@ python scripts/mrshop_image_upload.py --clear-state
 
 | 3     | **LOGIN**    | MrShopPlus Cookie认证                  | 优先加载 `cookies.json`                   |
 | 4     | **NAVIGATE** | 访问商品列表并定位模板商品             | **严禁从0创建**；必须点击“复制”           |
-| 5     | **UPLOAD**   | 替换标题 (官方英文) & 图片 (≤14张)    | 继承重量/售价/起订量，仅替换核心数据       |
+| 5     | **UPLOAD**   | 替换标题、首行超链接 & 图片 (≤14张)    | 强制物理剔除描述图；必填品牌与品名        |
 | 6     | **VERIFY**   | 截图 → 保存 → 观察 URL 变为 `action=3` | 必须有截图，URL 变化是唯一可靠的标志       |
 
 

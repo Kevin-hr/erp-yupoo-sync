@@ -1,0 +1,208 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - text: 
+    - link "Yupoo logo" [ref=e7] [cursor=pointer]:
+      - /url: /home
+      - img "Yupoo logo" [ref=e8]
+    - generic [ref=e9]:
+      - link "" [ref=e63] [cursor=pointer]:
+        - /url: /notification
+        - generic [ref=e64]:
+          - generic: 
+      - generic [ref=e65]:
+        - link "lol2024 " [ref=e66] [cursor=pointer]:
+          - /url: /user
+          - text: lol2024
+          - generic: 
+        - generic:
+          - list:
+            - link "个人主页":
+              - /url: https://lol2024.x.yupoo.com/
+              - listitem "个人主页"
+            - link "我的相册":
+              - /url: /gallery
+              - listitem "我的相册"
+            - link "帐号设置":
+              - /url: /user?tab=settings
+              - listitem "帐号设置"
+            - link "帐号安全":
+              - /url: /user?tab=security
+              - listitem "帐号安全"
+            - generic:
+              - listitem "退出"
+      - link "个人主页" [ref=e68] [cursor=pointer]:
+        - /url: https://lol2024.x.yupoo.com/
+    - link "又拍小程序" [ref=e70] [cursor=pointer]:
+      - /url: /miniprogram
+  - generic:
+    - tooltip "已复制":
+      - generic: 已复制
+  - generic [ref=e71]:
+    - generic [ref=e73]: ↓
+    - navigation [ref=e75]:
+      - generic [ref=e76]:
+        - menu [ref=e77]:
+          - menuitem " 首页" [ref=e78] [cursor=pointer]:
+            - listitem "首页" [ref=e79]:
+              - generic: 
+              - generic [ref=e80]: 首页
+          - menuitem " 相册" [ref=e81] [cursor=pointer]:
+            - listitem "相册" [ref=e82]:
+              - generic: 
+              - generic [ref=e83]: 相册
+          - menuitem " 工具箱 NEW " [ref=e84] [cursor=pointer]:
+            - generic: 
+            - generic [ref=e85]: 工具箱
+            - generic [ref=e86]: NEW
+            - generic: 
+          - menu [ref=e87]:
+            - menuitem " 防盗链" [ref=e88] [cursor=pointer]:
+              - listitem "防盗链" [ref=e89]:
+                - generic: 
+                - generic [ref=e90]: 防盗链
+            - menuitem " 批量下载" [ref=e91] [cursor=pointer]:
+              - listitem "批量下载" [ref=e92]:
+                - generic: 
+                - generic [ref=e93]: 批量下载
+            - menuitem " 水印" [ref=e94] [cursor=pointer]:
+              - listitem "水印" [ref=e95]:
+                - generic: 
+                - generic [ref=e96]: 水印
+            - menuitem " 外链统计" [ref=e97] [cursor=pointer]:
+              - listitem "外链统计" [ref=e98]:
+                - generic: 
+                - generic [ref=e99]: 外链统计
+            - menuitem " 页面统计 NEW" [ref=e100] [cursor=pointer]:
+              - listitem "页面统计" [ref=e101]:
+                - generic [ref=e102]: 
+                - generic [ref=e103]: 页面统计
+                - generic [ref=e104]: NEW
+          - generic [ref=e105]:
+            - menuitem " 分类 管理 " [ref=e106] [cursor=pointer]:
+              - generic: 
+              - generic [ref=e107]: 分类
+              - link "管理" [ref=e108]:
+                - /url: /sort/category
+              - generic: 
+            - menu [ref=e109]:
+              - menuitem "创建分类" [ref=e110] [cursor=pointer]:
+                - generic [ref=e111]: 创建分类
+            - generic: 
+          - menuitem " 回收站" [ref=e112] [cursor=pointer]:
+            - listitem "回收站" [ref=e113]:
+              - generic: 
+              - generic [ref=e114]: 回收站
+        - generic [ref=e115]:
+          - link "视频教程" [ref=e116] [cursor=pointer]:
+            - /url: https://help.x.yupoo.com/
+          - link "客服" [ref=e117] [cursor=pointer]:
+            - /url: https://ykf.zhidian-inc.cn/?username=bG9sMjAyNA%3D%3D
+          - generic "更多" [ref=e118] [cursor=pointer]:
+            - generic [ref=e119]: 更多 
+    - main [ref=e121]:
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic [ref=e124] [cursor=pointer]:
+            - generic: 
+          - generic [ref=e125] [cursor=pointer]: 已选中3项
+        - generic [ref=e177]:
+          - button "批量外链" [ref=e269] [cursor=pointer]
+          - button "添加水印" [ref=e270] [cursor=pointer]
+          - button "删除" [ref=e271] [cursor=pointer]
+          - button "移动到" [ref=e272] [cursor=pointer]
+      - generic: 
+      - generic [ref=e126]:
+        - generic [ref=e127]:
+          - generic [ref=e129]:
+            - text: P120 775#M-3XL ★ BAPE 纯棉T恤
+            - separator [ref=e130]
+            - text: 共有3项
+            - button "复制相册地址" [ref=e131] [cursor=pointer]:
+              - generic: 
+              - text: 复制相册地址
+          - link "返回 相册" [ref=e132] [cursor=pointer]:
+            - /url: /gallery
+            - generic: 
+            - text: 返回 相册
+        - generic [ref=e133]:
+          - generic [ref=e134]:
+            - paragraph [ref=e135]: 拖动图片或文件夹进入浏览器试试吧~
+            - generic [ref=e136]: 知道了
+          - button "上传图片" [ref=e137] [cursor=pointer]:
+            - generic: 
+            - text: 上传图片
+          - button "上传视频" [ref=e138] [cursor=pointer]:
+            - generic: 
+            - text: 上传视频
+          - generic [ref=e274] [cursor=pointer]:
+            - img [ref=e275]
+            - text: 更多
+          - button "图片白底 AI" [ref=e144] [cursor=pointer]:
+            - text: 图片白底
+            - generic [ref=e146]: AI
+          - generic [ref=e147]:
+            - generic [ref=e149]:
+              - generic: 
+              - generic:
+                - img "searchPicIcon" [ref=e150] [cursor=pointer]
+                - text: 
+              - textbox "搜索" [ref=e151]
+            - generic [ref=e152]:
+              - img "排序" [ref=e154] [cursor=pointer]
+              - text:  
+            - link "" [ref=e155] [cursor=pointer]:
+              - /url: /gallery/228499218?view=list
+              - generic: 
+        - generic [ref=e157]:
+          - generic [ref=e158] [cursor=pointer]:
+            - generic: 
+          - generic [ref=e159] [cursor=pointer]: 已选中3项
+      - generic: 
+      - generic [ref=e161]:
+        - generic "003.jpg" [ref=e163]:
+          - generic [ref=e164] [cursor=pointer]:
+            - generic "封面"
+          - generic "取消选择" [ref=e186]:
+            - img [ref=e187]
+          - text: 
+        - generic "002.jpg" [ref=e166]:
+          - generic [ref=e167] [cursor=pointer]:
+            - generic "封面"
+          - generic "取消选择" [ref=e207]:
+            - img [ref=e208]
+          - text: 
+        - generic "001.jpg" [ref=e169]:
+          - generic "封面" [ref=e171] [cursor=pointer]:
+            - generic [ref=e173]: 封面
+          - generic "取消选择" [ref=e209]:
+            - img [ref=e210]
+          - text: 
+      - text:  *    
+      - generic: 
+      - text:  *   *      
+      - dialog [ref=e212]:
+        - generic [ref=e213]:
+          - heading "批量外链" [ref=e214]
+          - button "" [ref=e215] [cursor=pointer]:
+            - generic: 
+        - generic [ref=e217]:
+          - group "图片尺寸（暂不支持视频）" [ref=e218]:
+            - generic [ref=e219]: 图片尺寸（暂不支持视频）
+            - generic [ref=e223] [cursor=pointer]: 原图
+            - generic [ref=e226] [cursor=pointer]: 大图(1080)
+            - generic [ref=e229] [cursor=pointer]: 中型图(800)
+            - generic [ref=e232] [cursor=pointer]: 小型图(500)
+            - generic [ref=e235] [cursor=pointer]: 缩略图(100)
+            - generic [ref=e238] [cursor=pointer]: 方块图(75)
+          - group "复制类型" [ref=e239]:
+            - generic [ref=e240]: 复制类型
+            - generic [ref=e244] [cursor=pointer]: 图片
+            - generic [ref=e247] [cursor=pointer]: 链接
+            - generic [ref=e250] [cursor=pointer]: 代码
+          - group "预览" [ref=e260]:
+            - generic [ref=e261]: 预览
+            - textbox [ref=e280]: http://pic.yupoo.com/lol2024/7dd41721/d3752d41.jpeg http://pic.yupoo.com/lol2024/d9ad6f22/d085f1bd.jpeg http://pic.yupoo.com/lol2024/7d7edde9/339c4005.jpeg
+        - generic [ref=e262]:
+          - button "复制" [ref=e263] [cursor=pointer]
+          - button "取消" [ref=e264] [cursor=pointer]
+      - text:  *  
