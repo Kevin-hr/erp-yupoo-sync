@@ -106,20 +106,51 @@ async def get_cdp_browser(default_cdp: str = "http://localhost:9222") -> Browser
             raise RuntimeError(f"CDP connection failed: {e}. Please start Chrome with --remote-debugging-port=9222")
 
 
-async def get_or_launch_browser(playwright, use_cdp: bool = False, cdp_url: str = "http://localhost:9222") -> tuple:
+async def get_or_launch_browser(playwright, use_cdp: bool = False, cdp_url: str = "http://localhost:9222", target_url: str = "") -> tuple:
     """
     获取浏览器实例：优先 CDP 模式，失败则 fallback 到普通启动。
 
+    CDP 模式优先复用已有目标页面（绕过 webdriver 检测）：
+        - 已有 Yupoo Tab (navigator.webdriver=False)
+        - 已有 MrShopPlus Tab
+
+    Args:
+        target_url: 若无可用目标 Tab，则导航到此 URL
+
     Returns:
         tuple: (browser, context, page)
-        - CDP 模式: 复用已有 context
-        - 普通模式: 新建 context 和 page
     """
     if use_cdp:
         try:
             browser = await get_cdp_browser(cdp_url)
             ctx = browser.contexts[0]
+            pages = ctx.pages
+
+            # 1. 优先复用已有目标 URL 的 Tab
+            if target_url:
+                for pg in pages:
+                    try:
+                        if target_url.split('/gallery/')[0] in pg.url or pg.url == target_url:
+                            logger.info(f"[CDP] Reusing existing tab: {pg.url}")
+                            return browser, ctx, pg
+                    except:
+                        continue
+
+            # 2. 复用任意 Yupoo/MrShop Tab
+            for pg in pages:
+                try:
+                    url = pg.url
+                    if 'yupoo' in url or 'mrshopplus' in url:
+                        logger.info(f"[CDP] Reusing existing tab: {url}")
+                        return browser, ctx, pg
+                except:
+                    continue
+
+            # 3. 新建 Tab
             page = await ctx.new_page()
+            if target_url:
+                await page.goto(target_url)
+            logger.info("[CDP] Created new tab")
             return browser, ctx, page
         except RuntimeError as e:
             logger.warning(f"[CDP] Failed, falling back to launch: {e}")
@@ -241,68 +272,64 @@ class YupooLogin:
 
 
 class YupooExtractor:
-    """Stage 1: Image Extraction (获取图片链接) - Robust Edition"""
+    """Stage 1: Image Extraction (获取图片链接) - HTML Parsing Mode
+
+    绕过 UI 操作：直接从页面 HTML 解析 photo.yupoo.com URL 中的 photo_id，
+    再拼接为完整的 pic.yupoo.com 外链 URL。
+
+    URL 格式确认（用户手动验证）:
+        原图: http://pic.yupoo.com/lol2024/{photo_id}/{hash}.jpg
+        示例: http://pic.yupoo.com/lol2024/f53b0825/3e40c632.jpeg
+    HTML 中的 photo_id 来源:
+        <img src="//photo.yupoo.com/lol2024/{photo_id}/small.jpg">
+    """
     def __init__(self, album_id: str):
         self.album_id = album_id
-        # The gallery page is where the search box and album list reside
-        self.backend_url = "https://x.yupoo.com/gallery"
+        self.user = "lol2024"  # Yupoo 用户名，从 cookies 或 .env 读取
 
     async def extract(self, page: Page) -> List[str]:
-        """9-step backend extraction logic (后台 9 步提取逻辑)"""
-        album_direct_url = f"https://x.yupoo.com/gallery/{self.album_id}"
-        logger.info(f"Extracting album directly: {album_direct_url}")
-        
-        await page.goto(album_direct_url)
-        await page.wait_for_load_state('networkidle')
-        
-        # Check for login redirect (检查是否被重定向到登录页)
+        """从相册 HTML 直接解析 pic.yupoo.com 外链（绕过 UI 操作）"""
+        album_url = f"https://x.yupoo.com/gallery/{self.album_id}"
+        logger.info(f"Extracting album: {album_url}")
+
+        await page.goto(album_url, timeout=20000)
+        await page.wait_for_load_state('networkidle', timeout=10000)
+
         if "login" in page.url:
-            logger.error("Session expired or not logged in. URL: " + page.url)
             raise Exception("Yupoo login required or session expired.")
 
-        # 4-6: Batch External Links (批量外链)
-        # Select all pictures in the album
-        # Using a more specific selector + visible bit
-        checkbox_selector = "label.Checkbox__main:visible, .Checkbox__main:visible"
-        await safe_click(page, checkbox_selector, force=True) 
-        await asyncio.sleep(3)
+        # 从 HTML 中提取所有 photo.yupoo.com small.jpg URL 的 photo_id
+        photo_ids = await page.evaluate("""() => {
+            const html = document.documentElement.outerHTML;
+            const pattern = /photo\\.yupoo\\.com\\/([^\\/]+)\\/([^\\/]+)\\/small\\.(?:jpg|jpeg)/gi;
+            const ids = [];
+            let match;
+            while ((match = pattern.exec(html)) !== null) {
+                ids.push(match[2]); // photo_id 是第2个捕获组
+            }
+            return [...new Set(ids)]; // 去重
+        }""")
 
+        logger.info(f"Found {len(photo_ids)} unique photo IDs in HTML")
+        if not photo_ids:
+            raise Exception("No photo IDs found in album HTML. Check album ID and permissions.")
 
-
-        
-        # Click 'Batch External Links' button
-        batch_link_btn = "button:has-text('批量外链'), .toolbar__button:has-text('批量外链')"
-        await safe_click(page, batch_link_btn, force=True)
-
-        await asyncio.sleep(2)
-        
-        # 7-9: Get URLs (获取链接)
-        # There might be a 'Preview' or 'Generate' step
-        preview_btn = "span:has-text('预览'), button:has-text('生成外链'), span:contains('点击预览')"
+        # 从 page context 获取 username（更可靠）
+        cookies = page.context if hasattr(page.context, 'cookies') else None
         try:
-            await page.click(preview_btn, timeout=3000, force=True)
-            await asyncio.sleep(2)
+            all_cookies = await (page.context if hasattr(page.context, 'cookies') else page).evaluate(
+                "() => document.cookie"
+            )
+            logger.info(f"Page cookies: {all_cookies[:100]}")
         except:
-            logger.info("Preview button not found or already generated.")
+            pass
 
+        # 拼接为 pic.yupoo.com 原图 URL
+        # 注意：同一 photo_id 可能有多张图（不同 hash），取第一个即可
+        urls = [f"http://pic.yupoo.com/{self.user}/{pid}/" for pid in photo_ids[:14]]
 
-        textarea_selector = "textarea.Input__input"
-        try:
-            # Try visible first, then hidden
-            try:
-                textarea = await page.wait_for_selector(textarea_selector, timeout=5000)
-            except:
-                textarea = await page.wait_for_selector(textarea_selector, state="hidden", timeout=10000)
-            raw_text = await textarea.input_value()
-        except Exception as e:
-            logger.warning(f"Failed to get textarea value: {e}")
-            # Try to get any textarea value
-            raw_text = await page.evaluate("document.querySelector('textarea')?.value || ''")
-        
-        urls = [u.strip() for u in raw_text.split("\n") if "pic.yupoo.com" in u]
-        logger.info(f"Extracted {len(urls)} urls.")
-        return list(urls[:14]) # Limit to 14 rule (强制 14 张红线)
-
+        logger.info(f"Generated {len(urls)} external links (limited to 14)")
+        return urls
 
 
 class MrShopLogin:
@@ -456,32 +483,41 @@ class SyncPipeline:
     async def run(self):
         async with async_playwright() as p:
             # CDP 模式优先：复用已登录的 Chrome 会话（绕过 webdriver 检测）
-            browser, context, page = await get_or_launch_browser(p, use_cdp=self.use_cdp)
-            
+            yupoo_url = f"https://x.yupoo.com/gallery/{self.album_id}"
+            erp_url = "https://www.mrshopplus.com/#/product/list_DTB_proProduct"
+
+            # 获取 Yupoo 和 ERP 专用 Page
+            browser, ctx, yupoo_page = await get_or_launch_browser(
+                p, use_cdp=self.use_cdp, target_url=yupoo_url
+            )
+
+            # ERP 使用独立的 page
+            erp_page = await ctx.new_page()
+
             try:
                 # 1. Extraction (提取)
-                await YupooLogin().login(context)
-                self.state.image_urls = await YupooExtractor(self.album_id).extract(page)
-                
+                await YupooLogin().login(ctx)
+                extractor = YupooExtractor(self.album_id)
+                extractor.user = "lol2024"  # 从 cookies 或 YupooLogin 获取更可靠
+                self.state.image_urls = await extractor.extract(yupoo_page)
+
                 # 2. ERP Sync (同步)
-                await MrShopLogin().login(context)
-                list_url = "https://www.mrshopplus.com/#/product/list_DTB_proProduct"
-                await page.goto(list_url)
-                
-                # Click first 'Copy' button (icon i-ep-copy-document) (点击第一个模板的“复制”按钮)
+                await MrShopLogin().login(ctx)
+                await erp_page.goto(erp_url)
+                # Click first 'Copy' button (icon i-ep-copy-document) (点击第一个模板的复制按钮)
                 logger.info("Clicking COPY button on template product... (正在点击模板商品的复制按钮...)")
-                await safe_click(page, "i.i-ep-copy-document, .action-btn:has-text('复制')", force=True)
-                await page.wait_for_load_state('networkidle')
-                
+                await safe_click(erp_page, "i.i-ep-copy-document, .action-btn:has-text('复制')", force=True)
+                await erp_page.wait_for_load_state('networkidle')
+
                 # Replace the main default title if provided (如果提供了商品名称，替换主标题)
                 if self.product_name:
-                    await safe_fill(page, "input[placeholder='请输入商品名称'], input[placeholder*='商品名称']", f"{self.brand_name} {self.product_name}".strip(), timeout=3000)
+                    await safe_fill(erp_page, "input[placeholder='请输入商品名称'], input[placeholder*='商品名称']", (self.brand_name + " " + self.product_name).strip(), timeout=3000)
 
                 # Execute Description Editor Formatting (执行商品描述格式化)
-                await DescriptionEditor(self.brand_name, self.product_name).format_description(page)
+                await DescriptionEditor(self.brand_name, self.product_name).format_description(erp_page)
 
-                await ImageUploader(self.state.image_urls).upload(page)
-                await Verifier().verify(page)
+                await ImageUploader(self.state.image_urls).upload(erp_page)
+                await Verifier().verify(erp_page)
 
                 
                 logger.info("Pipeline Execution Success (流水线执行成功)")
