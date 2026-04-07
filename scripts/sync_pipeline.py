@@ -9,11 +9,11 @@ Architecture (架构):
     Stage 3: MrShopLogin       - Login to MrShopPlus (ERP 登录)
     Stage 4: FormNavigator     - Navigate to product list (导航至商品列表)
     Stage 5: ImageUploader     - Click Copy, then upload images (点击复制并上传)
-
     Stage 6: Verifier          - Verify and save (验证并保存)
 
 Usage:
     python scripts/sync_pipeline.py --album-id 231019138
+    python scripts/sync_pipeline.py --album-id 231019138 --use-cdp  # CDP 持久化模式
 """
 
 import argparse
@@ -68,6 +68,68 @@ logging.basicConfig(
 logger = logging.getLogger('sync_pipeline')
 
 from playwright.async_api import async_playwright, Page, BrowserContext, Browser
+
+# =============================================================================
+# 0. CDP Persistent Browser (CDP 持久化浏览器连接)
+# =============================================================================
+
+async def get_cdp_browser(default_cdp: str = "http://localhost:9222") -> Browser:
+    """
+    通过 Chrome DevTools Protocol (CDP) 连接已存在的 Chrome 浏览器实例。
+
+    启动方式（需手动在 Chrome 中执行，或通过脚本）:
+        Windows: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --remote-debugging-port=9222
+        或启动时加 --user-data-dir 指定配置文件目录（可复用已有会话）
+
+    CDP 连接优势:
+    - 复用已有完整会话（1374+ cookies），无需重新登录
+    - 绕过 headless 模式的 webdriver 检测
+    - "点击预览"等交互正常执行
+
+    Args:
+        default_cdp: CDP 调试端口地址，默认 http://localhost:9222
+
+    Returns:
+        已连接的 Browser 实例（不包含 context，调用者需通过 browser.contexts 获取）
+    """
+    async with async_playwright() as p:
+        logger.info(f"[CDP] Connecting to {default_cdp}...")
+        try:
+            browser = await p.chromium.connect_over_cdp(default_cdp, timeout=10000)
+            contexts = browser.contexts
+            if not contexts:
+                raise RuntimeError("No browser contexts found")
+            logger.info(f"[CDP] Connected successfully. Contexts: {len(contexts)}, Pages: {len(contexts[0].pages)}")
+            return browser
+        except Exception as e:
+            logger.error(f"[CDP] Connection failed: {e}")
+            raise RuntimeError(f"CDP connection failed: {e}. Please start Chrome with --remote-debugging-port=9222")
+
+
+async def get_or_launch_browser(playwright, use_cdp: bool = False, cdp_url: str = "http://localhost:9222") -> tuple:
+    """
+    获取浏览器实例：优先 CDP 模式，失败则 fallback 到普通启动。
+
+    Returns:
+        tuple: (browser, context, page)
+        - CDP 模式: 复用已有 context
+        - 普通模式: 新建 context 和 page
+    """
+    if use_cdp:
+        try:
+            browser = await get_cdp_browser(cdp_url)
+            ctx = browser.contexts[0]
+            page = await ctx.new_page()
+            return browser, ctx, page
+        except RuntimeError as e:
+            logger.warning(f"[CDP] Failed, falling back to launch: {e}")
+
+    # 普通启动模式（fallback）
+    browser = await playwright.chromium.launch(headless=False)
+    context = await browser.new_context(viewport={'width': 1280, 'height': 900})
+    page = await context.new_page()
+    return browser, context, page
+
 
 # =============================================================================
 # 2. Resiliency Helpers (弹性组件 - 包含重试与安全操作)
@@ -224,9 +286,18 @@ class YupooExtractor:
             logger.info("Preview button not found or already generated.")
 
 
-        textarea_selector = "textarea.Input__input, textarea"
-        textarea = await page.wait_for_selector(textarea_selector)
-        raw_text = await textarea.input_value()
+        textarea_selector = "textarea.Input__input"
+        try:
+            # Try visible first, then hidden
+            try:
+                textarea = await page.wait_for_selector(textarea_selector, timeout=5000)
+            except:
+                textarea = await page.wait_for_selector(textarea_selector, state="hidden", timeout=10000)
+            raw_text = await textarea.input_value()
+        except Exception as e:
+            logger.warning(f"Failed to get textarea value: {e}")
+            # Try to get any textarea value
+            raw_text = await page.evaluate("document.querySelector('textarea')?.value || ''")
         
         urls = [u.strip() for u in raw_text.split("\n") if "pic.yupoo.com" in u]
         logger.info(f"Extracted {len(urls)} urls.")
@@ -316,29 +387,19 @@ class DescriptionEditor:
     async def format_description(self, page: Page):
         """Format the first line and insert link (格式化首行并插入链接)"""
         if not self.brand_name or not self.product_name:
-            logger.info("Skipping description formatting as brand/product name were not provided. (未提供品牌或商品名称，跳过描述格式化)")
-            return
+            logger.error("CRITICAL ERROR: Brand Name and Product Name are STRICTLY REQUIRED for formatting.")
+            raise ValueError("Strict Constraint Violated: Cannot skip description formatting. Brand and Product Name required.")
 
         logger.info(f"Formatting product description for: {self.product_name} (正在格式化商品描述: {self.product_name})")
         
-        # Format the URL slug based on the rule: space to hyphen (根据规则格式化 URL slug：空格转连字符)
-        # 规则: 超过2个英文单词中间必须要使用"-" (If more than 2 words, spaces must be "-")
-        # For safety and consistency, we just replace all spaces in brand_name with hyphens. (为了安全和一致性，直接将品牌名称中的空格全部替换为连字符。)
         brand_slug = self.brand_name.replace(" ", "-")
         link_url = f"https://www.stockxshoesvip.net/{brand_slug}/"
-        
-        # New first line HTML: "Name: <a href='...'>Brand Name</a> Official Product Name"
-        # 构造首行 HTML："Name: <a href='...'>品牌名</a> 实际商品名"
         first_line_html = f"Name: <a href='{link_url}' target='_blank'>{self.brand_name}</a> {self.product_name}"
         
-        # Execute JS to safely replace the first line without touching the rest (执行 JS 安全替换首行，不触碰其余内容)
-        # Search for the contenteditable editor element (wangEditor, TinyMCE, or quill) (查找内联编辑器元素)
         js_code = """
         (firstLineHtml) => {
-            // Find common rich text editor content areas (查找常见的富文本编辑器内容区域)
             let editor = document.querySelector('[contenteditable="true"]');
             
-            // If inside an iframe (TinyMCE default behavior) (如果位于 iframe 内)
             if (!editor) {
                 const iframes = document.querySelectorAll('iframe');
                 for (let iframe of iframes) {
@@ -353,13 +414,15 @@ class DescriptionEditor:
             }
             
             if (editor) {
-                // Find all <p> or <div> blocks inside the editor (查找编辑器内的所有段落块)
+                // RULE 2: ENFORCE NO IMAGES IN DESCRIPTION (严格禁止描述中出现图片)
+                let imgs = editor.querySelectorAll('img');
+                imgs.forEach(img => img.remove());
+                
+                // RULE 1: REPLACE ONLY THE FIRST LINE ('Name:' field)
                 let blocks = editor.querySelectorAll('p, div');
                 for (let block of blocks) {
                     if (block.innerText.includes('Name:')) {
-                        // Replace only the block containing 'Name:' (仅替换包含 'Name:' 的段落块)
                         block.innerHTML = firstLineHtml;
-                        // Fire input event to trigger v-model updates in Vue (触发 input 事件以更新 Vue 的 v-model)
                         editor.dispatchEvent(new Event('input', { bubbles: true }));
                         return true;
                     }
@@ -381,19 +444,19 @@ class DescriptionEditor:
 
 class SyncPipeline:
     """The Main Industrial Sync Engine (主工业同步引擎)"""
-    def __init__(self, album_id: str, product_id: str = "0", brand_name: str = "", product_name: str = ""):
+    def __init__(self, album_id: str, product_id: str = "0", brand_name: str = "", product_name: str = "", use_cdp: bool = False):
         self.album_id = album_id
         self.product_id = product_id
         self.brand_name = brand_name
         self.product_name = product_name
+        self.use_cdp = use_cdp
         self.state_file = LOG_DIR / "pipeline_state.json"
         self.state = PipelineState(album_id=album_id)
 
     async def run(self):
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False)
-            context = await browser.new_context(viewport={'width': 1280, 'height': 800})
-            page = await context.new_page()
+            # CDP 模式优先：复用已登录的 Chrome 会话（绕过 webdriver 检测）
+            browser, context, page = await get_or_launch_browser(p, use_cdp=self.use_cdp)
             
             try:
                 # 1. Extraction (提取)
@@ -434,6 +497,16 @@ if __name__ == "__main__":
     parser.add_argument("--product-id", default="0", help="ERP Product ID (ERP 商品 ID)")
     parser.add_argument("--brand-name", default="", help="Brand name for formatting (用于格式化的品牌名称)")
     parser.add_argument("--product-name", default="", help="Official product name for formatting (用于格式化的最新官方商品名称)")
+    parser.add_argument("--use-cdp", action="store_true",
+                        help="Use CDP persistent connection (连接已有 Chrome，绕过 webdriver 检测，需先启动 Chrome --remote-debugging-port=9222)")
+    parser.add_argument("--cdp-url", default="http://localhost:9222",
+                        help="CDP debug port URL (default: http://localhost:9222)")
     args = parser.parse_args()
-    
-    asyncio.run(SyncPipeline(args.album_id, args.product_id, args.brand_name, args.product_name).run())
+
+    asyncio.run(SyncPipeline(
+        args.album_id,
+        args.product_id,
+        args.brand_name,
+        args.product_name,
+        use_cdp=args.use_cdp
+    ).run())
