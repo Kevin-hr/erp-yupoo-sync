@@ -8,16 +8,33 @@
 
 The existing decision-cognition-skill implements 6 specialized agents using pure Python dataclasses with no external orchestration framework. This is a valid "start simple" approach. However, for production-grade multi-agent systems with complex routing, state management, and LLM integration, industry standard frameworks exist that reduce boilerplate and provide battle-tested patterns.
 
-## Recommended Stack
+## Actual Implementation (2026-04-08 Verified)
 
-### Core Orchestration Framework
+### Core Architecture: Pure Python Dataclass
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **LangGraph** | 0.2.x | Multi-agent workflow orchestration | Graph-based state machine ideal for decision pipelines; built by LangChain team; supports cycles (crucial for iterative refinement); native checkpointing for long conversations; 2024-2025 industry standard for complex agent flows [T2: Training data, unverified] |
-| **CrewAI** | 0.80+ | Role-based multi-agent collaboration | Role-defined agents with task delegation; good for "committee" style decision-making where multiple specialists vote; cleaner than raw LangGraph for straightforward pipelines [T2: Training data] |
+**结论：不采用任何外部编排框架。**
 
-**Decision: Use LangGraph** because the project requires conditional branching, cycle support (iterative bias scanning), and stateful memory across agents - all LangGraph strengths.
+当前实现使用**纯 Python dataclass + 原生 asyncio** 实现决策系统：
+
+| 组件 | 实现方式 | 说明 |
+|------|---------|------|
+| 状态管理 | `@dataclass` + `PipelineState` | `sync_pipeline.py:242-254` |
+| 决策路由 | `DecisionRouter` (pure Python) | `decision_system/router.py` |
+| 工作流编排 | `DecisionWorkflow` (顺序调度) | `decision_system/workflow.py` |
+| 熔断器 | `CircuitBreaker` ( dataclass) | `decision_system/circuit_breaker.py` |
+| Agent | Python dataclass | `decision_system/types.py` |
+
+**不采用 LangGraph / CrewAI 的理由：**
+1. 当前决策场景是**顺序执行**（路由器→Agent→结果），无需图结构的条件分支
+2. 无需 cycles/循环支持（BiasScanner 是一次性调用）
+3. 无状态持久化需求（每次 CLI 调用独立）
+4. **引入 LangGraph 增加复杂度但无实际收益**
+
+**LangGraph 适用场景（未来可能）：**
+- 需要图结构条件分支的复杂 Agent 流
+- 需要 cycle（迭代式 Refinement）
+- 需要 Checkpointing 跨对话持久化状态
+- 当前 ERP 同步流水线的并行化改造（`concurrent_batch_sync.py`）更适合用 asyncio.Semaphore 而非 LangGraph
 
 ### LLM Integration
 

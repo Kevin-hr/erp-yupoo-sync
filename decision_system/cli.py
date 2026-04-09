@@ -27,7 +27,7 @@ def run_cli(decision: str, roi: Optional[float] = None, output: str = "text") ->
     else:
         # Text output (Chinese)
         if result.router_result and result.router_result.get("roi_blocked"):
-            print(f"【⚠️ ROI拦截】{result.router_result.get('reason')}")
+            print(f"[! ROI拦截] {result.router_result.get('reason')}")
             print(f"最终建议: {result.final_action}")
             return
 
@@ -41,13 +41,13 @@ def run_cli(decision: str, roi: Optional[float] = None, output: str = "text") ->
         }.get(result.router_result.get("scenario_type"), "未知")
 
         print(f"========================================")
-        print(f"【场景分类】: {scenario_zh}")
-        print(f"【主要矛盾】: {result.router_result.get('main_conflict')}")
-        print(f"【分析结论】: {result.final_decision}")
-        print(f"【行动建议】: {result.final_action}")
-        
+        print(f"[场景分类]: {scenario_zh}")
+        print(f"[主要矛盾]: {result.router_result.get('main_conflict')}")
+        print(f"[分析结论]: {result.final_decision}")
+        print(f"[行动建议]: {result.final_action}")
+
         if result.circuit_open:
-            print(f"【❌ 熔断触发】: {result.circuit_error.get('message')}")
+            print(f"[X 熔断触发]: {result.circuit_error.get('message')}")
         
         if result.agent_results:
             print(f"【参与 Agent】: {', '.join([a['agent_id'] for a in result.agent_results])}")

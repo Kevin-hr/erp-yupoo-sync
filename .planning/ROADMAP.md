@@ -6,7 +6,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Foundation + Router** — Core types, decision router with scene classification, ROI red line pre-filter, circuit breaker
+- [x] **Phase 1: Foundation + Router** — Core types, decision router with scene classification, ROI red line pre-filter, circuit breaker
 - [ ] **Phase 2: Primary Decision Loop** — Wise Decider, Bias Scanner, output formatting, WH business rules
 - [ ] **Phase 3: Extended Agents** — Reverse Thinker, Second-Order Thinker, First-Principles Thinker
 - [ ] **Phase 4: Orchestration + External Validation Stub** — Workflow orchestration, conflict resolution, 群众路线 placeholder
@@ -33,7 +33,7 @@
 **Plans:** 1 plan
 
 Plans:
-- [ ] 01-foundation-router/01-PLAN.md — Foundation: types.py, config.py, router with ROI guard and circuit breaker, CLI entry point
+- [x] 01-foundation-router/01-PLAN.md — Foundation: types.py, config.py, router with ROI guard and circuit breaker, CLI entry point
 
 ---
 
@@ -98,7 +98,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation + Router | 0/1 | Not started | - |
+| 1. Foundation + Router | 1/1 | ✅ Completed | 2026-04-08 |
 | 2. Primary Decision Loop | 0/1 | Not started | - |
 | 3. Extended Agents | 0/1 | Not started | - |
 | 4. Orchestration + External Validation Stub | 0/1 | Not started | - |
@@ -109,15 +109,15 @@ Plans:
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | Phase 1 | Pending |
-| CORE-02 | Phase 1 | Pending |
-| CORE-03 | Phase 1 | Pending |
-| CORE-04 | Phase 1 | Pending |
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
-| INFRA-03 | Phase 1 | Pending |
-| META-01 | Phase 1 | Pending |
-| META-02 | Phase 1 | Pending |
+| CORE-01 | Phase 1 | ✅ Done |
+| CORE-02 | Phase 1 | ✅ Done |
+| CORE-03 | Phase 1 | ✅ Done |
+| CORE-04 | Phase 1 | ✅ Done |
+| INFRA-01 | Phase 1 | ✅ Done |
+| INFRA-02 | Phase 1 | ✅ Done |
+| INFRA-03 | Phase 1 | ✅ Done |
+| META-01 | Phase 1 | ✅ Done |
+| META-02 | Phase 1 | ✅ Done |
 | AGENT-01 | Phase 2 | Pending |
 | AGENT-02 | Phase 2 | Pending |
 | OUT-01 | Phase 2 | Pending |

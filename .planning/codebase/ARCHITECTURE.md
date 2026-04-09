@@ -84,15 +84,38 @@
 - 方法: `login(context: BrowserContext) -> bool`
 - Cookie 文件: `logs/cookies.json`
 
-**ImageUploader** (`scripts/sync_pipeline.py:280-300`)
-- 职责: URL 图片顺序上传
+**ImageUploader** (`scripts/sync_pipeline.py:403-505`)
+- 职责: URL 图片顺序上传（Element Plus UI）
 - 方法: `upload(page: Page)`
-- 流程: 清理旧图 → 打开弹窗 → 切换URL上传标签 → 粘贴 URLs → 插入图片视频
+- 流程: 打开 `.upload-container.editor-upload-btn` → 切换 `.el-tabs__item:has-text('URL')` 标签 → 填入 `.el-dialog .el-textarea__inner` → 点击 `.el-dialog__footer button.el-button--primary` 确认
+- 关键选择器（经验证）:
 
-**DescriptionEditor** (`scripts/sync_pipeline.py:319-384`)
+| 步骤 | 选择器 | 说明 |
+|------|--------|------|
+| 打开弹窗 | `.upload-container.editor-upload-btn` | upload-container 内的按钮 |
+| 切换URL标签 | `.el-tabs__item:has-text('URL')` | Element Plus tab |
+| 填写URL | `.el-dialog .el-textarea__inner` | textarea 在 el-dialog 内 |
+| 确认按钮 | `.el-dialog__footer button.el-button--primary` | 弹窗底部的主按钮 |
+
+**DescriptionEditor** (`scripts/sync_pipeline.py:524-624`)
 - 职责: 商品描述首行格式化
 - 方法: `format_description(page: Page)`
-- 逻辑: 注入 JS 查找富文本编辑器，定位 `Name:` 段落并替换为首行 HTML
+- 关键: **TinyMCE 在 iframe 内**（`iframe[id^='vue-tinymce']`），必须用 `page.frame()` 遍历所有 frame，找到含 `#tinymce` 的 frame，再在其上下文执行 JS
+- 错误模式: 直接 `page.evaluate()` 无法访问 iframe 内的 editor
+- 正确模式:
+
+```python
+# 遍历所有 frame，找含 #tinymce 的那个
+for frame in page.frames:
+    has_tinymce = await frame.evaluate("""() => {
+        return !!(document.querySelector('#tinymce') || document.querySelector('.mce-content-body'));
+    }""")
+    if has_tinymce:
+        mce_frame = frame
+        break
+# 在 iframe 上下文执行 JS
+await mce_frame.evaluate(tiny_js, first_line_html)
+```
 
 **Verifier** (`scripts/sync_pipeline.py:302-317`)
 - 职责: 最终验证与保存
