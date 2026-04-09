@@ -557,19 +557,35 @@ async def set_listing_status(page: Page, online: bool = False) -> None:
             logger.warning("[ERP] 未能找到上架开关组件")
             return
 
-        # 检查当前状态 (Checking current status via aria-checked or classes)
-        # aria-checked="true" 表示开启, "false" 表示关闭
-        is_checked = await switch.get_attribute("aria-checked") == "true"
-        
-        if online and not is_checked:
-            logger.info("[ERP] 最高规则复核：正在尝试上架商品 (不提倡)")
-            await switch.click()
-        elif not online and is_checked:
-            logger.info("[ERP] 🚀 执行最高规则：将商品设定为 [下架] 状态，待人工审核")
-            await switch.click()
+        # 增强型：使用 JS 强制探测与切换 (Robust JS Toggling)
+        target_state = "true" if online else "false"
+        toggle_js = f"""
+        async () => {{
+            const item = Array.from(document.querySelectorAll('.el-form-item')).find(el => el.innerText.includes('商品上架'));
+            if (!item) return 'error_not_found';
+            const switchEl = item.querySelector('.el-switch');
+            if (!switchEl) return 'error_no_switch';
+            
+            const isChecked = switchEl.getAttribute('aria-checked') === 'true';
+            const target = {{ 'true': true, 'false': false }}['{target_state}'];
+            
+            if (isChecked !== target) {{
+                // 尝试点击核心区域
+                const core = switchEl.querySelector('.el-switch__core') || switchEl;
+                core.click();
+                return 'toggled';
+            }}
+            return 'already_correct';
+        }}
+        """
+        result = await page.evaluate(toggle_js)
+        if result == 'toggled':
+            logger.info(f"[ERP] 🚀 成功触发状态切换 -> {'上架' if online else '下架'}")
+            await asyncio.sleep(1) # 等待动画完成
+        elif result == 'already_correct':
+            logger.info(f"[ERP] 商品状态已符合预期 (无需操作)")
         else:
-            status_text = "已是下架状态" if not online else "已是上架状态"
-            logger.info(f"[ERP] 商品状态符合预期: {status_text}")
+            logger.warning(f"[ERP] 状态切换异常: {result}")
 
     except Exception as e:
         logger.warning(f"[ERP] 设置上架状态时发生非致命异常: {e}")
