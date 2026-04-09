@@ -296,7 +296,7 @@ async def process_single_product(
     task: ProductTask,
     semaphore: asyncio.Semaphore,
     use_cdp: bool = False,
-    browser_context: Optional[BrowserContext] = None
+    cdp_browser: Optional[Browser] = None
 ) -> ProductTask:
     """Process a single product task (处理单个商品任务)"""
 
@@ -307,12 +307,12 @@ async def process_single_product(
     try:
         async with semaphore:
             async with async_playwright() as p:
-                # Get browser context
-                if use_cdp and browser_context:
-                    # CDP模式：复用已有浏览器上下文
-                    pages = browser_context.pages
-                    yupoo_page = pages[0] if pages else await browser_context.new_page()
-                    erp_page = pages[1] if len(pages) > 1 else await browser_context.new_page()
+                # Get browser context - each worker creates its OWN context
+                if use_cdp and cdp_browser:
+                    # CDP模式：每个worker创建独立的浏览器上下文，避免SPA路由踩踏
+                    context = await cdp_browser.new_context()
+                    yupoo_page = await context.new_page()
+                    erp_page = await context.new_page()
                 else:
                     # 独立上下文
                     browser = await p.chromium.launch(headless=False)
@@ -385,21 +385,16 @@ async def run_batch_concurrent(
 
     semaphore = asyncio.Semaphore(max_workers)
 
-    # If CDP, connect once and reuse context
-    browser_context: Optional[BrowserContext] = None
+    # If CDP, connect once and pass browser (not context) so each worker creates its own context
+    cdp_browser: Optional[Browser] = None
     if use_cdp:
         async with async_playwright() as p:
-            browser = await p.chromium.connect_over_cdp("http://localhost:9222")
-            if browser.contexts:
-                browser_context = browser.contexts[0]
-                logger.info(f"Connected to CDP, {len(browser_context.pages)} pages existing")
-            else:
-                browser_context = await browser.new_context()
-                logger.info("CDP connected, created new context")
+            cdp_browser = await p.chromium.connect_over_cdp("http://localhost:9222")
+            logger.info(f"Connected to CDP browser")
 
     # Create all worker tasks
     worker_tasks = [
-        process_single_product(task, semaphore, use_cdp, browser_context)
+        process_single_product(task, semaphore, use_cdp, cdp_browser)
         for task in tasks
     ]
 

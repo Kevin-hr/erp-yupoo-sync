@@ -179,16 +179,36 @@ async def extract_cookies_from_cdp(cdp_url: str = "http://localhost:9222") -> Li
 async def yupoo_login(context: BrowserContext) -> bool:
     """Yupoo 登录认证，优先从本地文件恢复 (Yupoo login with cookie persistence)"""
     cookies_file = LOG_DIR / "yupoo_cookies.json"
-    username = os.getenv("YUPOO_USERNAME", "lol2024")
-    password = os.getenv("YUPOO_PASSWORD", "9longt#3")
+    username = os.getenv("YUPOO_USERNAME")
+    password = os.getenv("YUPOO_PASSWORD")
+    if not username:
+        raise ValueError("YUPOO_USERNAME environment variable is required")
+    if not password:
+        raise ValueError("YUPOO_PASSWORD environment variable is required")
 
     if cookies_file.exists():
         try:
             with open(cookies_file, 'r', encoding='utf-8') as f:
                 cookies = json.load(f)
-            await context.add_cookies(cookies)
-            logger.info("Yupoo Cookie 已从本地加载。")
-            return True
+            # 过滤过期 cookie
+            import time as _time
+            valid_cookies = []
+            expired_count = 0
+            for cookie in cookies:
+                if 'expiry' in cookie and cookie['expiry'] < _time.time():
+                    expired_count += 1
+                    logger.warning(f"Yupoo Cookie {cookie.get('name')} expired at {cookie['expiry']}")
+                    continue
+                valid_cookies.append(cookie)
+            cookies = valid_cookies
+            if expired_count > 0:
+                logger.warning(f"Yupoo Cookies: {expired_count} 个已过期，已跳过")
+            if not cookies:
+                logger.warning("Yupoo: 无有效 Cookie，需重新登录")
+            else:
+                await context.add_cookies(cookies)
+                logger.info(f"Yupoo Cookie 已从本地加载（{len(cookies)} 个有效）")
+                return True
         except Exception:
             pass
 
@@ -281,7 +301,10 @@ async def _extract_yupoo_urls_dom_fallback(album_id: str, page: Page) -> List[st
         while ((match = pattern.exec(html)) !== null) { ids.push(match[2]); }
         return [...new Set(ids)];
     }""")
-    user = os.getenv("YUPOO_USERNAME", "lol2024").split("@")[0]
+    _username = os.getenv("YUPOO_USERNAME")
+    if not _username:
+        raise ValueError("YUPOO_USERNAME environment variable is required for DOM fallback")
+    user = _username.split("@")[0]
     return [f"http://pic.yupoo.com/{user}/{pid}/" for pid in photo_ids[:14]]
 
 # =============================================================================
@@ -291,17 +314,37 @@ async def _extract_yupoo_urls_dom_fallback(album_id: str, page: Page) -> List[st
 async def erp_login(context: BrowserContext) -> bool:
     """ERP 登录认证 (ERP login management)"""
     cookies_file = LOG_DIR / "cookies.json"
-    email = os.getenv("ERP_USERNAME", "zhiqiang")
-    password = os.getenv("ERP_PASSWORD", "123qazwsx")
+    email = os.getenv("ERP_USERNAME")
+    password = os.getenv("ERP_PASSWORD")
+    if not email:
+        raise ValueError("ERP_USERNAME environment variable is required")
+    if not password:
+        raise ValueError("ERP_PASSWORD environment variable is required")
 
     # 尝试加载持久化 Cookie
     if cookies_file.exists():
         try:
             with open(cookies_file, 'r', encoding='utf-8') as f:
                 cookies = json.load(f)
-            await context.add_cookies(cookies)
-            logger.info(f"[ERP] 从文件成功恢复了 {len(cookies)} 个 Cookie")
-            return True
+            # 过滤过期 cookie
+            import time as _time
+            valid_cookies = []
+            expired_count = 0
+            for cookie in cookies:
+                if 'expiry' in cookie and cookie['expiry'] < _time.time():
+                    expired_count += 1
+                    logger.warning(f"[ERP] Cookie {cookie.get('name')} expired at {cookie['expiry']}")
+                    continue
+                valid_cookies.append(cookie)
+            cookies = valid_cookies
+            if expired_count > 0:
+                logger.warning(f"[ERP] Cookies: {expired_count} 个已过期，已跳过")
+            if not cookies:
+                logger.warning("[ERP] 无有效 Cookie，需重新登录")
+            else:
+                await context.add_cookies(cookies)
+                logger.info(f"[ERP] 从文件成功恢复了 {len(cookies)} 个有效 Cookie")
+                return True
         except Exception as e:
             logger.warning(f"[ERP] Cookie 恢复失败: {e}")
 
