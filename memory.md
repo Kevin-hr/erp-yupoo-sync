@@ -39,6 +39,7 @@
 - **2026-04-03**: 完成 `BAPE-芭比` 分类首个产品 (ID: 230251075) 的全流程同步验证。
 - **技术突破**: 发现 ERP 保存须填写 MOQ/重量/单价。通过自动化 Agent 补全默认值（0.5kg, 99元, MOQ 1），成功绕过表单校验，实现“一键上架”闭环。
 - **2026-04-07**: 成功使用 AI 原生 `browser_subagent` 处理 Yupoo 遗留专辑 (ID: 228499218)，在遭遇 AliYun 验证码时触发停报，经由用户手动解除后实现自动化断点续传（复制模板、清理旧图、插入链接并保存）。全面跑通人机协同(Human-in-the-Loop)自动化上架流程。
+- **2026-04-09**: `.github/RELEASE_SOP.md` 创建后，新会话/子 Agent 不会自动遵守。**根本原因**：文档是死的，不主动约束行为。**修正**：必须在 `CLAUDE.md` 业务红线中写入强制引用规则，文档才能真正生效。
 
 ---
 
@@ -93,9 +94,13 @@
 | TinyMCE编辑 | `page.frame()` 访问 iframe `#tinymce` |
 | 保存验证 | URL含 `action=3` |
 
-### 完整流水线验证成功 ✅
-
-Yupoo提取 → CDP cookie注入 → 复制模板 → TinyMCE格式化 → URL上传14张图 → 保存action=3，全程无需人工介入。
+### 完整流水线验证成功 (Industrialized) ✅
+- **CDP XHR 拦截**：完美获取含 Hash 的完整路径，解决 404。
+- **Fresh Navigation**：解决 Vue 挂载失败，确保 `pkValues` 跳转后 UI 可交互。
+- **JS 注入上传**：成功绕过 URL 长度限制。
+- **最高规则**：强制 [下架] 状态，通过 `el-switch__core` 探测。
+- **GitHub Release**：版本 `v2.3.0` 已发布，存档工业化成果。
+- **playwright-cli**：终端原生浏览器 CLI，支持 `state-load/save`（完整 Cookie + localStorage 导出/导入），比 Python Playwright 的纯 Cookie 注入更完整，可解决 Yupoo/MrShopPlus 依赖 localStorage 的登录验证问题。
 
 ### 并发改造方向（待实现）
 
