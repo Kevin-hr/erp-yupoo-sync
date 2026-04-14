@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP同步流程图 v6.0 - 以终为始(采集→填充→导入)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+  background: #0a0e27;
+  color: #e0e6ed;
+  overflow-x: auto;
+}
+.header {
+  background: linear-gradient(135deg, #1a1f4e 0%, #2d3561 100%);
+  padding: 20px 40px;
+  border-bottom: 2px solid #00d4ff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header h1 {
+  font-size: 24px;
+  color: #00d4ff;
+  text-shadow: 0 0 10px rgba(0,212,255,0.5);
+}
+.header .version {
+  background: #00d4ff;
+  color: #0a0e27;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 14px;
+}
+.svg-container { padding: 20px; min-width: 2400px; }
+.node { cursor: pointer; }
+.node:hover .node-bg { filter: brightness(1.2); }
+.legend {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(26,31,78,0.95);
+  border: 1px solid #00d4ff;
+  border-radius: 10px;
+  padding: 15px 20px;
+  font-size: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+}
+.legend-color {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  border-radius: 4px;
+}
+.legend-line {
+  width: 30px;
+  height: 3px;
+  margin-right: 10px;
+  border-radius: 2px;
+}
+@keyframes flowPulse {
+  0% { stroke-dashoffset: 20; opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.3; }
+}
+.flow-line { animation: flowPulse 2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 ERP同步流程图 v6.0 — 以终为始</h1>
+  <div class="version">v6.0 | 2026-04-14 | 采集→填充→导入</div>
+</div>
+
+<div class="svg-container">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1400" width="2400" height="1400">
+
+<defs>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a2044" stroke-width="0.5"/>
+  </pattern>
+  <linearGradient id="sourceGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#c0392b"/>
+    <stop offset="100%" style="stop-color:#e74c3c"/>
+  </linearGradient>
+  <linearGradient id="collectGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#8e44ad"/>
+    <stop offset="100%" style="stop-color:#9b59b6"/>
+  </linearGradient>
+  <linearGradient id="fillGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#2980b9"/>
+    <stop offset="100%" style="stop-color:#3498db"/>
+  </linearGradient>
+  <linearGradient id="importGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#27ae60"/>
+    <stop offset="100%" style="stop-color:#2ecc71"/>
+  </linearGradient>
+  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/>
+  </marker>
+</defs>
+<rect width="100%" height="100%" fill="#0a0e27"/>
+<rect width="100%" height="100%" fill="url(#grid)"/>
+
+<!-- ========== 阶段一: 最终目标 (从下往上) ========== -->
+<!-- 最终目标泳道 -->
+<rect x="50" y="50" width="1100" height="180" rx="10" fill="#1a3a1a" fill-opacity="0.3" stroke="#27ae60" stroke-width="2"/>
+<text x="70" y="80" fill="#27ae60" font-size="18" font-weight="bold">🎯 最终目标: ERP商品上架</text>
+
+<!-- 最终上架需要的字段 -->
+<g transform="translate(80, 100)">
+  <rect width="1040" height="110" rx="8" fill="#1a1f4e" stroke="#27ae60" stroke-width="1"/>
+  <text x="15" y="25" fill="#00ff88" font-size="12" font-weight="bold">ERP上架 = Excel填写完成 → 导入ERP</text>
+
+  <text x="15" y="50" fill="#00d4ff" font-size="10">必须字段:</text>
+  <text x="15" y="68" fill="#fff" font-size="9">① 商品标题*(B) 英文 ② 首图*(E) ③ 其他图片(F) ④ 上架=N(J) ⑤ 物流模板(J)=Clothing</text>
+  <text x="15" y="86" fill="#fff" font-size="9">⑥ 类别(K) ⑦ 标签(L) ⑧ 不记库存(O)=Y ⑨ 重量(P)=0.8 ⑩ 规格2(Y)=尺码 ⑪ 售价(AD) ⑫ 原价(AE) ⑬ 库存(AF)</text>
+
+  <text x="15" y="105" fill="#f39c12" font-size="10">共14个关键字段 (来自34列表格)</text>
+</g>
+
+<!-- ========== 阶段二: Excel填写需要的字段 ========== -->
+<rect x="50" y="260" width="1100" height="220" rx="10" fill="#1a2a4a" fill-opacity="0.3" stroke="#3498db" stroke-width="2"/>
+<text x="70" y="290" fill="#3498db" font-size="18" font-weight="bold">📋 Excel中转: 填写34列 → 14个关键字段</text>
+
+<g transform="translate(80, 310)">
+  <rect width="1040" height="155" rx="8" fill="#1a1f4e" stroke="#3498db" stroke-width="1"/>
+
+  <!-- 英文标题来源 -->
+  <text x="15" y="20" fill="#e74c3c" font-size="11" font-weight="bold">① 商品标题*(B): 英文标题</text>
+  <text x="15" y="38" fill="#aaa" font-size="9">来源: stockxshoesvip.net 原站 | 示例: DESCENTE ALLTERRAIN BS</text>
+
+  <!-- 图片来源 -->
+  <text x="15" y="58" fill="#e74c3c" font-size="11" font-weight="bold">② 商品首图*(E) + ③ 其他图片(F): Yupoo图片URLs</text>
+  <text x="15" y="76" fill="#aaa" font-size="9">来源: Yupoo相册 | 格式: http://pic.yupoo.com/lol2024/{id}/{hash}.jpg</text>
+
+  <!-- 描述来源 -->
+  <text x="15" y="96" fill="#e74c3c" font-size="11" font-weight="bold">④ 商品描述(D): 完整HTML</text>
+  <text x="15" y="114" fill="#aaa" font-size="9">来源: stockxshoesvip.net | 含Name/Category/Guarantees/Shipping</text>
+
+  <!-- 尺码来源 -->
+  <text x="15" y="134" fill="#e74c3c" font-size="11" font-weight="bold">⑤ 规格2(Y): Size + 尺码列表</text>
+  <text x="15" y="152" fill="#aaa" font-size="9">来源: stockxshoesvip.net 描述中提取 | 格式: Size\nS\nM\nL\nXL</text>
+</g>
+
+<!-- ========== 阶段三: 需要采集什么 ========== -->
+<rect x="50" y="510" width="1100" height="280" rx="10" fill="#2a1a4a" fill-opacity="0.3" stroke="#9b59b6" stroke-width="2"/>
+<text x="70" y="540" fill="#9b59b6" font-size="18" font-weight="bold">🔍 数据采集: 需要采集什么? (以终为始倒推)</text>
+
+<g transform="translate(80, 560)">
+  <rect width="500" height="210" rx="8" fill="#1a1f4e" stroke="#c0392b" stroke-width="2"/>
+  <text x="15" y="20" fill="#c0392b" font-size="12" font-weight="bold">来源1: stockxshoesvip.net (原站)</text>
+  <text x="15" y="42" fill="#fff" font-size="10">┌─────────────────────────────────────┐</text>
+  <text x="15" y="56" fill="#fff" font-size="10">│ 1. 英文产品标题                      │</text>
+  <text x="15" y="70" fill="#aaa" font-size="9">   DESCENTE ALLTERRAIN BS</text>
+  <text x="15" y="84" fill="#fff" font-size="10">│ 2. 完整HTML描述                      │</text>
+  <text x="15" y="98" fill="#aaa" font-size="9">   Name/Category/Guarantees/Shipping</text>
+  <text x="15" y="112" fill="#fff" font-size="10">│ 3. 产品分类                          │</text>
+  <text x="15" y="126" fill="#aaa" font-size="9">   Godspeed Clothes → New Arrivals</text>
+  <text x="15" y="140" fill="#fff" font-size="10">│ 4. 尺码信息                          │</text>
+  <text x="15" y="154" fill="#aaa" font-size="9">   S / M / L / XL / 2XL</text>
+  <text x="15" y="168" fill="#fff" font-size="10">│ 5. 产品链接                          │</text>
+  <text x="15" y="182" fill="#aaa" font-size="9">   https://stockxshoesvip.net/DESCENTE/</text>
+  <text x="15" y="196" fill="#fff" font-size="10">└─────────────────────────────────────┘</text>
+</g>
+
+<g transform="translate(600, 560)">
+  <rect width="500" height="210" rx="8" fill="#1a1f4e" stroke="#3498db" stroke-width="2"/>
+  <text x="15" y="20" fill="#3498db" font-size="12" font-weight="bold">来源2: Yupoo相册 (图片)</text>
+  <text x="15" y="42" fill="#fff" font-size="10">┌─────────────────────────────────────┐</text>
+  <text x="15" y="56" fill="#fff" font-size="10">│ 1. 相册ID                            │</text>
+  <text x="15" y="70" fill="#aaa" font-size="9">   album_id = 527345264973337</text>
+  <text x="15" y="84" fill="#fff" font-size="10">│ 2. 商品图片URLs (≤14张)             │</text>
+  <text x="15" y="98" fill="#aaa" font-size="9">   pic.yupoo.com/{user}/{hash}.jpg</text>
+  <text x="15" y="112" fill="#fff" font-size="10">│ 3. 尺码补充说明 (可选)              │</text>
+  <text x="15" y="126" fill="#aaa" font-size="9">   Yupoo描述中可能包含尺码表</text>
+  <text x="15" y="140" fill="#fff" font-size="10">│ 4. 产品分类标签 (可选)              │</text>
+  <text x="15" y="154" fill="#aaa" font-size="9">   相册分类名称</text>
+  <text x="15" y="168" fill="#fff" font-size="10">└─────────────────────────────────────┘</text>
+</g>
+</g>
+
+<!-- ========== 阶段四: 完整流程 (左到右) ========== -->
+<rect x="1180" y="50" width="1180" height="740" rx="10" fill="#1a1a3a" fill-opacity="0.3" stroke="#00d4ff" stroke-width="2"/>
+<text x="1200" y="80" fill="#00d4ff" font-size="18" font-weight="bold">🔄 完整执行流程 (时间线)</text>
+
+<!-- 阶段标签 -->
+<text x="1220" y="110" fill="#c0392b" font-size="14" font-weight="bold">STAGE 0</text>
+<text x="1220" y="125" fill="#888" font-size="10">采集准备</text>
+
+<text x="1500" y="110" fill="#9b59b6" font-size="14" font-weight="bold">STAGE 1</text>
+<text x="1500" y="125" fill="#888" font-size="10">数据采集</text>
+
+<text x="1780" y="110" fill="#3498db" font-size="14" font-weight="bold">STAGE 2</text>
+<text x="1780" y="125" fill="#888" font-size="10">Excel填充</text>
+
+<text x="2060" y="110" fill="#27ae60" font-size="14" font-weight="bold">STAGE 3</text>
+<text x="2060" y="125" fill="#888" font-size="10">ERP导入</text>
+
+<!-- 时间轴 -->
+<line x1="1200" y1="145" x2="2300" y2="145" stroke="#00d4ff" stroke-width="1"/>
+<text x="1200" y="160" fill="#00d4ff" font-size="9">T+0</text>
+<text x="1500" y="160" fill="#00d4ff" font-size="9">T+5s</text>
+<text x="1780" y="160" fill="#00d4ff" font-size="9">T+15s</text>
+<text x="2060" y="160" fill="#00d4ff" font-size="9">T+30s</text>
+
+<!-- STAGE 0: 采集准备 -->
+<g transform="translate(1200, 175)">
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#c0392b" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#c0392b"/>
+  <rect x="0" y="17" width="260" height="8" fill="#c0392b"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">0.1 确定产品SKU</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">产品URL/名称/SKU</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">确定采集目标</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+0 | 人工</text>
+  <text x="10" y="116" fill="#888" font-size="8">IT/DT/人工均可</text>
+</g>
+
+<!-- STAGE 1: 数据采集 -->
+<g transform="translate(1200, 320)">
+  <!-- 1.1 采集英文标题 -->
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#c0392b" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#c0392b"/>
+  <rect x="0" y="17" width="260" height="8" fill="#c0392b"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">1.1 采集英文标题</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">stockxshoesvip.net</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">DESCENTE ALLTERRAIN BS</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+1s | IT</text>
+  <text x="10" y="116" fill="#888" font-size="8">原站产品页</text>
+</g>
+
+<g transform="translate(1480, 320)">
+  <!-- 1.2 采集HTML描述 -->
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#c0392b" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#c0392b"/>
+  <rect x="0" y="17" width="260" height="8" fill="#c0392b"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">1.2 采集HTML描述</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">产品页完整HTML</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">&lt;p&gt;Name: ...&lt;/p&gt;</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+2s | IT</text>
+  <text x="10" y="116" fill="#888" font-size="8">原站产品页</text>
+</g>
+
+<g transform="translate(1200, 465)">
+  <!-- 1.3 提取尺码 -->
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="260" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">1.3 提取尺码</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">HTML描述文本</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">Size\nS\nM\nL\nXL</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+3s | DT</text>
+  <text x="10" y="116" fill="#888" font-size="8">正则/Soup解析</text>
+</g>
+
+<g transform="translate(1480, 465)">
+  <!-- 1.4 采集Yupoo图片 -->
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#3498db" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#3498db"/>
+  <rect x="0" y="17" width="260" height="8" fill="#3498db"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">1.4 采集Yupoo图片</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">album_id + CDP拦截</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">image_urls[] (≤14)</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+5s | IT</text>
+  <text x="10" y="116" fill="#888" font-size="8">XHR拦截API</text>
+</g>
+
+<g transform="translate(1760, 465)">
+  <!-- 1.5 采集分类 -->
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="260" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">1.5 采集分类映射</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">Godspeed Clothes</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">New Arrivals</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+6s | DT</text>
+  <text x="10" y="116" fill="#888" font-size="8">分类映射表</text>
+</g>
+
+<!-- STAGE 2: Excel填充 -->
+<g transform="translate(2040, 320)">
+  <!-- 2.1 打开Excel -->
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#3498db" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#3498db"/>
+  <rect x="0" y="17" width="260" height="8" fill="#3498db"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">2.1 打开Excel模板</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">商品导入模板.xlsx</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">worksheet</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+8s | DT</text>
+  <text x="10" y="116" fill="#888" font-size="8">openpyxl</text>
+</g>
+
+<g transform="translate(2040, 465)">
+  <!-- 2.2 填写14个字段 -->
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#27ae60" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#27ae60"/>
+  <rect x="0" y="17" width="260" height="8" fill="#27ae60"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">2.2 填写14个字段</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">采集的5类数据</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">ws (34列表格)</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+12s | DT</text>
+  <text x="10" y="116" fill="#888" font-size="8">字段映射</text>
+</g>
+
+<!-- STAGE 3: ERP导入 -->
+<g transform="translate(1760, 610)">
+  <!-- 3.1 人工导入 -->
+  <rect width="260" height="130" rx="8" fill="#1a1f4e" stroke="#27ae60" stroke-width="2"/>
+  <rect width="260" height="25" rx="8" fill="#27ae60"/>
+  <rect x="0" y="17" width="260" height="8" fill="#27ae60"/>
+  <text x="10" y="17" fill="#fff" font-size="10" font-weight="bold">3.1 ERP批量导入</text>
+  <text x="10" y="42" fill="#00d4ff" font-size="9">INPUT:</text>
+  <text x="10" y="56" fill="#aaa" font-size="8">导入模板_*.xlsx</text>
+  <text x="10" y="72" fill="#00ff88" font-size="9">OUTPUT:</text>
+  <text x="10" y="86" fill="#aaa" font-size="8">商品上架(下架状态)</text>
+  <text x="10" y="102" fill="#f39c12" font-size="9">⏱️ T+30s | 人工</text>
+  <text x="10" y="116" fill="#888" font-size="8">ERP导入界面</text>
+</g>
+
+<!-- ========== 数据流连接线 ========== -->
+<!-- 目标 → Excel填写 -->
+<path d="M 300 230 L 300 260" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path d="M 300 480 L 300 510" stroke="#3498db" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- 采集 → Excel填充 -->
+<path d="M 600 680 L 1200 680 L 1200 610" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)" fill="none"/>
+
+<!-- 水平连接线: 采集阶段 -->
+<path d="M 1460 385 L 1480 385" stroke="#c0392b" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path d="M 1460 530 L 1480 530" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path d="M 1740 530 L 1760 530" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- 水平连接线: Excel填充 -->
+<path d="M 2020 385 L 2040 385" stroke="#3498db" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- 2.2 → 3.1 -->
+<path d="M 2170 595 L 2170 610 L 2020 610" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)" fill="none"/>
+
+<!-- ========== 右下角: 汇总 ========== -->
+<rect x="1180" y="780" width="1180" height="280" rx="10" fill="#1a1f4e" stroke="#00d4ff" stroke-width="2"/>
+
+<text x="1200" y="810" fill="#00d4ff" font-size="14" font-weight="bold">📊 以终为始: 数据需求汇总</text>
+
+<!-- 表格 -->
+<g transform="translate(1200, 825)">
+  <text fill="#fff" font-size="10" font-weight="bold">┌──────────────────┬──────────────────────────────┬───────────────────────────────┬────────┐</text>
+  <text y="14" fill="#fff" font-size="10" font-weight="bold">│ Excel字段(必填)  │ 需要什么数据                  │ 数据来源                       │ 采集优先级│</text>
+  <text y="28" fill="#fff" font-size="10" font-weight="bold">├──────────────────┼──────────────────────────────┼───────────────────────────────┼────────┤</text>
+  <text y="42" fill="#e74c3c" font-size="10">│ 商品标题*(B)     │ DESCENTE ALLTERRAIN BS        │ stockxshoesvip.net 原站        │ P0     │</text>
+  <text y="56" fill="#fff" font-size="10">│ 商品描述(D)      │ &lt;p&gt;完整HTML...&lt;/p&gt;         │ stockxshoesvip.net 原站        │ P0     │</text>
+  <text y="70" fill="#3498db" font-size="10">│ 商品首图*(E)     │ pic.yupoo.com/xxx/big.jpg    │ Yupoo相册 (XHR拦截)           │ P0     │</text>
+  <text y="84" fill="#3498db" font-size="10">│ 其他图片(F)      │ URL1\nURL2\nURL3          │ Yupoo相册 (XHR拦截)           │ P0     │</text>
+  <text y="98" fill="#9b59b6" font-size="10">│ 规格2(Y)        │ Size\nS\nM\nL\nXL              │ stockxshoesvip.net 描述提取 │ P1     │</text>
+  <text y="112" fill="#9b59b6" font-size="10">│ 类别名称(K)      │ New Arrivals                   │ 分类映射表                     │ P1     │</text>
+  <text y="126" fill="#888" font-size="10">│ 标签(L)         │ DESCENTE ALLTERRAIN BS W ZIP │ 标题+产品类型组合              │ P2     │</text>
+  <text y="140" fill="#fff" font-size="10">│ 固定值           │ N/Clothing/Y/0.8/88.99/149.99│ 代码常量                       │ P3     │</text>
+  <text y="154" fill="#fff" font-size="10">└──────────────────┴──────────────────────────────┴───────────────────────────────┴────────┘</text>
+</g>
+
+<!-- ========== 底部: 关键洞察 ========== -->
+<rect x="50" y="820" width="1100" height="120" rx="10" fill="#1a1f4e" stroke="#ff6600" stroke-width="2"/>
+<text x="70" y="850" fill="#ff6600" font-size="14" font-weight="bold">💡 关键洞察: 以终为始</text>
+<text x="70" y="875" fill="#fff" font-size="11">1. 英文标题 DESCENTE ALLTERRAIN BS 来自 stockxshoesvip.net, ❌ 不是来自Yupoo!</text>
+<text x="70" y="895" fill="#fff" font-size="11">2. 完整HTML描述来自 stockxshoesvip.net, ❌ 不是来自Yupoo!</text>
+<text x="70" y="915" fill="#fff" font-size="11">3. 只有图片URLs来自 Yupoo, ✅ 通过XHR拦截采集</text>
+<text x="70" y="935" fill="#f39c12" font-size="11">→ 采集策略: 原站(标题+描述+尺码) + Yupoo(图片)</text>
+
+<!-- ========== 图例 ========== -->
+<rect x="50" y="960" width="1100" height="80" rx="10" fill="#1a1f4e" stroke="#00d4ff" stroke-width="1"/>
+<text x="70" y="985" fill="#00d4ff" font-size="12" font-weight="bold">图例 LEGEND</text>
+<text x="70" y="1005" fill="#c0392b" font-size="10">■ 原站采集 (stockxshoesvip.net)  </text>
+<text x="280" y="1005" fill="#9b59b6" font-size="10">■ DT数据处理 (规则引擎)  </text>
+<text x="450" y="1005" fill="#3498db" font-size="10">■ Yupoo图片采集  </text>
+<text x="600" y="1005" fill="#27ae60" font-size="10">■ ERP导入  </text>
+<text x="750" y="1005" fill="#f39c12" font-size="10">■ 人工干预</text>
+<text x="70" y="1025" fill="#888" font-size="10">优先级: P0=必须采集 P1=重要 P2=可选 P3=固定值</text>
+
+</svg>
+</div>
+
+</body>
+</html>
