@@ -33,3 +33,13 @@ Thumbs.db
 
 # Local .claude settings (private)
 .claude/settings.json
+
+# Playwright CLI session states (ephemeral browser state)
+.playwright-cli/
+
+# Temporary output
+output/
+.dumate/xlsx_temp/
+
+# Windows reserved device name
+nul

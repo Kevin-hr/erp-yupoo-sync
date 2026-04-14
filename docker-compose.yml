@@ -1,0 +1,16 @@
+# =============================================================================
+# Docker Compose for Industrialized Sync Workflow
+# =============================================================================
+
+services:
+  erp-sync:
+    build: .
+    volumes:
+      - ./logs:/app/logs
+      - ./screenshots:/app/screenshots
+      - ./.env:/app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Usage: docker compose run erp-sync --album-id 231967755
+    # To run in CDP mode (requires remote browser accessibility):
+    # docker compose run erp-sync --album-id 231967755 --use-cdp
