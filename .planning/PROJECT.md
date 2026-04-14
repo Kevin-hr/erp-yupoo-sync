@@ -1,71 +1,107 @@
-# 决策认知系统 v2.0 (Decision Cognition System v2.0)
+# ERP 相册同步流水线 (Yupoo to MrShopPlus ERP Sync Pipeline)
 
 ## What This Is
 
-智能化决策支持系统，融入毛泽东思想四大方法论支柱（实事求是、矛盾论、实践论、群众路线），通过六大 Agent（决策路由器、智慧决策师、偏差扫描师、逆向思维师、二阶思维师、第一性原理师）实现分级决策流程。服务于 WH 网红 ROI 追踪项目的重大决策场景。
+将 Yupoo 相册产品图片自动同步至 MrShopPlus ERP 完成上架的浏览器自动化流水线。核心流程：Yupoo 提取外链 → Excel 中转填充 → ERP 批量导入 → 截图留证。
 
 ## Core Value
 
-帮助用户在复杂决策中快速识别主要矛盾，选择最优分析路径，输出可执行的决策建议。2分钟内完成琐事决策，长期项目启用完整 Agent 链路。
+用最小的操作步骤、最低的维护成本，将相册产品可靠地批量上架到 ERP。绕过 TinyMCE/表单操作等脆弱环节，用 Excel 批量导入取而代之。
 
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] **v1.0** Yupoo 相册提取 + ERP 单条表单上传（基础可用）
+- [x] **v2.0** CDP 工业级提取器 + 熔断机制 + 并发安全重构
+- [x] **v2.3.0** 强制下架审核 + 审计状态 + Cookie 过期检测
+- [x] **v3.0.0** 工业级同步流水线 v3：CDP 提取器 + Docker 容器化 + SOP.md
 
 ### Active
 
-- [ ] 实现决策路由器 (router-001)：场景分类、主要矛盾识别、Agent 调度
-- [ ] 实现智慧决策师 (wise-decider-001)：时间旅行测试、输得起原则、扑克思维
-- [ ] 实现偏差扫描师 (bias-scanner-001)：7大偏差检测、群众路线外部校验
-- [ ] 实现逆向思维师 (reverse-thinker-001)：三步防错法
-- [ ] 实现二阶思维师 (second-order-001)：影响地图、10-10-10法则
-- [ ] 实现第一性原理师 (first-principle-001)：四步创新法
-- [ ] 集成 WH 业务红线规则：ROI 为负止亏、新人 Model B 压测、术语规范、流量标准
+- [ ] **v3.1.0** Excel 中转站模式：Excel 模板填充 + ERP 批量导入（进行中）
 
 ### Out of Scope
 
-- 独立的 Web/桌面 UI 界面
-- 多语言国际化支持
-- 移动端推送通知
+- ERP API 直接对接（无公开 API，需逆向）
+- 多语言 ERP 系统支持
+- 独立部署的 Web UI
 
 ## Context
 
 ### 项目背景
 
-WH 网红 ROI 追踪系统需要处理大量业务决策：
-- 网红合作决策（是否合作、给什么条件）
-- 新市场开拓方向
-- 样品寄送决策
-- 团队管理决策
-- 日常运营选择
+多品牌跨境电商运营需要将 Yupoo 相册中的产品图片同步至 MrShopPlus ERP 完成上架。品牌包括：WE11DONE、DESCENTE、SAINT LAURENT 等，需要高效批量处理。
 
 ### 现有资源
 
-- 已在 `C:\Users\Administrator\.claude\skills\decision-cognition-skill\` 存在 Python 工作流脚本
-- 决策认知系统 v1.0 基础架构已定义
-- WH 项目业务红线规则已沉淀
+- **Excel 导入模板**：`商品导入模板 (1).xlsx`（33列，商品信息 + 计量单位 2个Sheet）
+- **ERP 导入结果**：`商品导入结果_527345264973337.xlsx`（实际导入验证）
+- **ERP 账号**：`zhiqiang / 123qazwsx`，Base URL: `https://www.mrshopplus.com`
+- **Yupoo 账号**：`lol2024 / 9longt#3`
+- **已验证提取器**：CDP XHR 拦截提取 `/api/albums/{id}/photos`
 
 ### 技术环境
 
-- Python 执行环境
-- Claude Code Agent 编排能力
-- 飞书 Bitable 集成能力
+- Python + Playwright（CDP 连接现有 Chrome）
+- Docker 容器化部署（已验证）
+- lark-cli 飞书集成能力
+- ERP 商品导入字段映射（来自实际导入结果文件）
 
-## Constraints
+### ERP 导入字段映射（已验证）
 
-- **体量审计**: 禁止在 Git 仓库推送超过 10MB 的非必要二进制文件
-- **脚本编码**: Windows PowerShell 5.1 环境下，所有 `.ps1/.bat` 脚本必须纯 ASCII/英文
-- **脱敏审计**: 强制检查 API Key 及环境变量泄露风险
+| Excel 列 | 字段名 | 数据来源 | 处理说明 |
+|----------|--------|----------|----------|
+| 商品标题 | `商品标题*` | 相册标题 | 去除内部编号（如H110）|
+| 商品描述 | `商品描述` | 相册描述 | 提取尺码行，移除图片 |
+| 商品首图 | `商品首图*` | Yupoo 外链第1张 | URL |
+| 商品其他图片 | `商品其他图片` | Yupoo 外链第2-14张 | 换行分隔，≤14张 |
+| 规格1 | `规格1` | 相册描述颜色行 | 如 Color:Yellow |
+| 规格2 | `规格2` | 相册描述尺码行 | 如 Size:41 |
+| SKU值 | `SKU值` | 颜色+尺码组合 | `Color:Yellow\nSize:41` |
+| 售价/原价 | `售价*/原价` | ERP 商品价格 | 参考模板默认值 |
+| 商品上架 | `商品上架*` | — | 强制 `N`（下架待审）|
+| 物流模板 | `物流模板*` | — | ERP 系统配置 |
+| 类别名称 | `类别名称` | 相册分类名 | 品牌→类别映射 |
+| 计量单位 | `计量单位` | — | 参考计量单位Sheet |
+
+### 核心痛点（v3.1 待解决）
+
+| 痛点 | 当前方案 | 问题 |
+|------|----------|------|
+| TinyMCE 编辑器操作 | JS 注入绕过 iframe | 脆弱，维护成本高 |
+| textarea maxlength=153 | JS 注入控制 value | 绕过行为不可靠 |
+| 图片上传需要新鲜导航 | Fresh Navigation 逻辑 | 逻辑复杂易出错 |
+| 单条复制操作慢 | sync_pipeline.py 单worker | 效率低 |
+
+**解决思路**：放弃表单操作，改用 Excel 批量导入，绕过所有前端限制。
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| 采用毛泽东思想元框架 | 从"拆解重构"升级为"从实际出发+抓主要矛盾"，更贴合业务实际 | — Pending |
-| 默认极简，按需启用 Agent | 2分钟上限原则，避免过度分析 | — Pending |
-| WH 业务红线仲裁优先 | ROI 为负必须止亏，保护业务底线 | — Pending |
+| Excel 中转站架构 | 绕过 TinyMCE/表单操作脆弱环节，用 ERP 原生批量导入 | v3.1.0 进行中 |
+| 强制下架审核 | 所有同步商品必须设为下架状态，禁止自动发布 | v2.3.0 已验证 |
+| CDP XHR 拦截提取 | 正则拼图图片外链 404，改用拦截 `/api/albums/{id}/photos` | v3.0.0 已验证 |
+| 单worker + CDP共享Chrome | 所有并发方案因 SPA 路由踩踏失败 | v2.3.0 已验证 |
 
 ---
-*Last updated: 2026-04-02 after initialization from GEMINI.md*
+
+*Last updated: 2026-04-15 — v3.1.0 Excel中转站模式 started*
