@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP同步流程图 v5.0 - Excel中转架构</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+  background: #0a0e27;
+  color: #e0e6ed;
+  overflow-x: auto;
+}
+.header {
+  background: linear-gradient(135deg, #1a1f4e 0%, #2d3561 100%);
+  padding: 20px 40px;
+  border-bottom: 2px solid #00d4ff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header h1 {
+  font-size: 24px;
+  color: #00d4ff;
+  text-shadow: 0 0 10px rgba(0,212,255,0.5);
+}
+.header .version {
+  background: #00d4ff;
+  color: #0a0e27;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 14px;
+}
+.svg-container {
+  padding: 20px;
+  min-width: 1800px;
+}
+.node { cursor: pointer; }
+.node:hover .node-bg { filter: brightness(1.2); }
+.node-info {
+  font-size: 11px;
+  fill: #a0a0a0;
+  font-family: 'Consolas', monospace;
+}
+/* Animation */
+@keyframes flowPulse {
+  0% { stroke-dashoffset: 20; opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.3; }
+}
+.flow-line {
+  animation: flowPulse 2s ease-in-out infinite;
+}
+.legend {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(26,31,78,0.95);
+  border: 1px solid #00d4ff;
+  border-radius: 10px;
+  padding: 15px 20px;
+  font-size: 12px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+}
+.legend-color {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  border-radius: 4px;
+}
+.legend-line {
+  width: 30px;
+  height: 3px;
+  margin-right: 10px;
+  border-radius: 2px;
+}
+.tooltip {
+  position: fixed;
+  background: rgba(0,0,0,0.95);
+  border: 1px solid #00d4ff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12px;
+  max-width: 300px;
+  display: none;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+}
+.tooltip h4 {
+  color: #00d4ff;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.tooltip table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tooltip td {
+  padding: 3px 8px;
+  border-bottom: 1px solid #333;
+}
+.tooltip td:first-child {
+  color: #888;
+  width: 60px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 ERP同步流程图 v5.0 — Excel中转架构</h1>
+  <div class="version">v5.0 | 2026-04-14</div>
+</div>
+
+<div class="svg-container">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+
+<!-- ==================== 背景网格 ==================== -->
+<defs>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a2044" stroke-width="0.5"/>
+  </pattern>
+  <linearGradient id="itGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#1e3a5f"/>
+    <stop offset="100%" style="stop-color:#234567"/>
+  </linearGradient>
+  <linearGradient id="dtGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#3d1f4e"/>
+    <stop offset="100%" style="stop-color:#4a2561"/>
+  </linearGradient>
+  <linearGradient id="erpGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#1f4e3d"/>
+    <stop offset="100%" style="stop-color:#256148"/>
+  </linearGradient>
+  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/>
+  </marker>
+  <marker id="arrowheadGreen" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#00ff88"/>
+  </marker>
+  <marker id="arrowheadYellow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#ffaa00"/>
+  </marker>
+</defs>
+<rect width="100%" height="100%" fill="#0a0e27"/>
+<rect width="100%" height="100%" fill="url(#grid)"/>
+
+<!-- ==================== 泳道 (Swimlanes) ==================== -->
+<!-- IT泳道 -->
+<rect x="50" y="50" width="1700" height="300" rx="10" fill="url(#itGrad)" fill-opacity="0.3" stroke="#3498db" stroke-width="2"/>
+<text x="70" y="80" fill="#3498db" font-size="16" font-weight="bold">🖥️ IT系统</text>
+<text x="70" y="100" fill="#888" font-size="11">Yupoo系统 | CDP拦截 | Excel处理</text>
+
+<!-- DT泳道 -->
+<rect x="50" y="370" width="1700" height="300" rx="10" fill="url(#dtGrad)" fill-opacity="0.3" stroke="#9b59b6" stroke-width="2"/>
+<text x="70" y="400" fill="#9b59b6" font-size="16" font-weight="bold">🔧 DT数字转型</text>
+<text x="70" y="420" fill="#888" font-size="11">脚本执行 | 规则引擎 | 数据转换</text>
+
+<!-- ERP泳道 -->
+<rect x="50" y="690" width="1700" height="300" rx="10" fill="url(#erpGrad)" fill-opacity="0.3" stroke="#27ae60" stroke-width="2"/>
+<text x="70" y="720" fill="#27ae60" font-size="16" font-weight="bold">📦 ERP系统</text>
+<text x="70" y="740" fill="#888" font-size="11">MrShopPlus | 商品管理 | 批量导入</text>
+
+<!-- 人工干预区 -->
+<rect x="50" y="1010" width="1700" height="120" rx="10" fill="#4a3f00" fill-opacity="0.3" stroke="#f39c12" stroke-width="2"/>
+<text x="70" y="1040" fill="#f39c12" font-size="16" font-weight="bold">👤 人工干预</text>
+<text x="70" y="1060" fill="#888" font-size="11">最终确认 | 导入执行 | 结果验证</text>
+
+<!-- ==================== 时间轴 ==================== -->
+<line x1="50" y1="1145" x2="1750" y2="1145" stroke="#00d4ff" stroke-width="2"/>
+<text x="50" y1="1160" fill="#00d4ff" font-size="10">T+0</text>
+<text x="400" y="1160" fill="#00d4ff" font-size="10">T+5s</text>
+<text x="800" y="1160" fill="#00d4ff" font-size="10">T+15s</text>
+<text x="1200" y="1160" fill="#00d4ff" font-size="10">T+30s</text>
+<text x="1600" y="1160" fill="#00d4ff" font-size="10">T+60s</text>
+<!-- 时间刻度 -->
+<line x1="400" y1="1140" x2="400" y2="1150" stroke="#00d4ff" stroke-width="2"/>
+<line x1="800" y1="1140" x2="800" y2="1150" stroke="#00d4ff" stroke-width="2"/>
+<line x1="1200" y1="1140" x2="1200" y2="1150" stroke="#00d4ff" stroke-width="2"/>
+<line x1="1600" y1="1140" x2="1600" y2="1150" stroke="#00d4ff" stroke-width="2"/>
+
+<!-- ==================== 节点1: 触发 ==================== -->
+<g class="node" transform="translate(80, 100)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#3498db" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#3498db"/>
+  <rect x="0" y="17" width="200" height="8" fill="#3498db"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">STAGE 0: 触发</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">album_id = 527345264973337</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">启动信号</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+0 | 人工触发</text>
+</g>
+
+<!-- ==================== 节点2: CDP连接检测 ==================== -->
+<g class="node" transform="translate(320, 100)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#3498db" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#3498db"/>
+  <rect x="0" y="17" width="200" height="8" fill="#3498db"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">1.1 CDP连接检测</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">localhost:9222</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">browser, context, page</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+1s | IT</text>
+</g>
+
+<!-- ==================== 节点3: 直连Yupoo相册 ==================== -->
+<g class="node" transform="translate(560, 100)">
+  <rect class="node-bg" width="220" height="120" rx="8" fill="#1a1f4e" stroke="#3498db" stroke-width="2"/>
+  <rect x="0" y="0" width="220" height="25" rx="8" fill="#3498db"/>
+  <rect x="0" y="17" width="220" height="8" fill="#3498db"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">1.2 直连Yupoo相册</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">/gallery/{album_id}</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">page loaded</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+3s | IT</text>
+</g>
+
+<!-- ==================== 节点4: XHR拦截 ==================== -->
+<g class="node" transform="translate(820, 100)">
+  <rect class="node-bg" width="240" height="120" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect x="0" y="0" width="240" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="240" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">1.3 XHR拦截响应</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">page.on(response)</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">api_response_data</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+4s | DT</text>
+</g>
+
+<!-- ==================== 节点5: 解析image_urls ==================== -->
+<g class="node" transform="translate(1100, 100)">
+  <rect class="node-bg" width="240" height="140" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect x="0" y="0" width="240" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="240" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">1.4 解析image_urls</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">api_response.json()</text>
+  <text x="10" y="70" fill="#aaa" font-size="9">data.list[].photo_id</text>
+  <text x="10" y="85" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="100" fill="#aaa" font-size="9">image_urls[] (≤14)</text>
+  <text x="10" y="115" fill="#aaa" font-size="9">title, desc, sizes</text>
+  <text x="10" y="130" fill="#f39c12" font-size="10">⏱️ T+5s | DT</text>
+</g>
+
+<!-- ==================== 节点6: 打开Excel模板 ==================== -->
+<g class="node" transform="translate(80, 420)">
+  <rect class="node-bg" width="220" height="120" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect x="0" y="0" width="220" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="220" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">2.1 打开Excel模板</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">商品导入模板.xlsx</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">worksheet (34列)</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+6s | DT</text>
+</g>
+
+<!-- ==================== 节点7: 填写商品标题 ==================== -->
+<g class="node" transform="translate(340, 420)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="200" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">2.2 填写商品标题*</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">列B(2) = title</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">ws['B'] = 清洗后标题</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+7s | DT</text>
+</g>
+
+<!-- ==================== 节点8: 填写商品首图 ==================== -->
+<g class="node" transform="translate(580, 420)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="200" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">2.3 填写商品首图*</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">列E(5) = image_urls[0]</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">ws['E'] = 首图URL</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+8s | DT</text>
+</g>
+
+<!-- ==================== 节点9: 填写其他图片 ==================== -->
+<g class="node" transform="translate(820, 420)">
+  <rect class="node-bg" width="220" height="120" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect x="0" y="0" width="220" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="220" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">2.4 填写其他图片</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">列F(6) = urls[1..N]</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">URL\nURL\nURL换行</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+9s | DT</text>
+</g>
+
+<!-- ==================== 节点10: 填写商品描述 ==================== -->
+<g class="node" transform="translate(1080, 420)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="200" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">2.5 填写商品描述</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">列D(4) = HTML描述</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">ws['D'] = 完整HTML</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+10s | DT</text>
+</g>
+
+<!-- ==================== 节点11: 填写固定值 ==================== -->
+<g class="node" transform="translate(1320, 420)">
+  <rect class="node-bg" width="240" height="140" rx="8" fill="#1a1f4e" stroke="#27ae60" stroke-width="2"/>
+  <rect x="0" y="0" width="240" height="25" rx="8" fill="#27ae60"/>
+  <rect x="0" y="17" width="240" height="8" fill="#27ae60"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">2.6 填写固定值</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">N/Clothing/Y/0.8</text>
+  <text x="10" y="70" fill="#aaa" font-size="9">88.99/149.99/100</text>
+  <text x="10" y="85" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="100" fill="#aaa" font-size="9">I=N, J=Clothing</text>
+  <text x="10" y="115" fill="#aaa" font-size="9">O=Y, P=0.8, AD/AE/AF</text>
+  <text x="10" y="130" fill="#f39c12" font-size="10">⏱️ T+11s | DT</text>
+</g>
+
+<!-- ==================== 节点12: 填写规格2(Size) ==================== -->
+<g class="node" transform="translate(1320, 420)">
+  <rect class="node-bg" width="240" height="120" rx="8" fill="#1a1f4e" stroke="#9b59b6" stroke-width="2"/>
+  <rect x="0" y="0" width="240" height="25" rx="8" fill="#9b59b6"/>
+  <rect x="0" y="17" width="240" height="8" fill="#9b59b6"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">2.7 填写规格2(Size)</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">列Y(25) = sizes[]</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">"Size\nS\nM\nL\nXL"</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+12s | DT</text>
+</g>
+
+<!-- ==================== 节点13: 保存Excel ==================== -->
+<g class="node" transform="translate(100, 740)">
+  <rect class="node-bg" width="240" height="120" rx="8" fill="#1a1f4e" stroke="#27ae60" stroke-width="2"/>
+  <rect x="0" y="0" width="240" height="25" rx="8" fill="#27ae60"/>
+  <rect x="0" y="17" width="240" height="8" fill="#27ae60"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">2.8 保存Excel文件</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">ws (已填充数据)</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">导入模板_{album_id}.xlsx</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+15s | DT</text>
+</g>
+
+<!-- ==================== 节点14: 打开ERP导入界面 ==================== -->
+<g class="node" transform="translate(500, 740)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#27ae60" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#27ae60"/>
+  <rect x="0" y="17" width="200" height="8" fill="#27ae60"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">3.1 打开ERP后台</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">mrshopplus.com</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">商品管理页面</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+20s | ERP</text>
+</g>
+
+<!-- ==================== 节点15: 选择导入文件 ==================== -->
+<g class="node" transform="translate(740, 740)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#27ae60" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#27ae60"/>
+  <rect x="0" y="17" width="200" height="8" fill="#27ae60"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">3.2 选择Excel文件</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">导入模板_*.xlsx</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">文件已选中</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+25s | 人工</text>
+</g>
+
+<!-- ==================== 节点16: 确认导入 ==================== -->
+<g class="node" transform="translate(980, 740)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#f39c12" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#f39c12"/>
+  <rect x="0" y="17" width="200" height="8" fill="#f39c12"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">3.3 点击确认导入</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">确认按钮点击</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">导入处理中...</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+30s | 人工</text>
+</g>
+
+<!-- ==================== 节点17: 等待处理 ==================== -->
+<g class="node" transform="translate(1220, 740)">
+  <rect class="node-bg" width="220" height="120" rx="8" fill="#1a1f4e" stroke="#888" stroke-width="2"/>
+  <rect x="0" y="0" width="220" height="25" rx="8" fill="#888"/>
+  <rect x="0" y="17" width="220" height="8" fill="#888"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">3.4 等待处理完成</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">系统处理中</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">处理完成信号</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+30s~90s | ERP</text>
+</g>
+
+<!-- ==================== 节点18: 验证结果 ==================== -->
+<g class="node" transform="translate(1480, 740)">
+  <rect class="node-bg" width="200" height="120" rx="8" fill="#1a1f4e" stroke="#27ae60" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#27ae60"/>
+  <rect x="0" y="17" width="200" height="8" fill="#27ae60"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">3.5 验证结果</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">商品列表</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">验证通过/失败</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+90s | 人工</text>
+</g>
+
+<!-- ==================== 节点19: 截图留证 ==================== -->
+<g class="node" transform="translate(1480, 1060)">
+  <rect class="node-bg" width="200" height="100" rx="8" fill="#1a1f4e" stroke="#f39c12" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#f39c12"/>
+  <rect x="0" y="17" width="200" height="8" fill="#f39c12"/>
+  <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">4.1 截图留证</text>
+  <text x="10" y="40" fill="#00d4ff" font-size="10">INPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">页面截图</text>
+  <text x="10" y="70" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">screenshots/*.png</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+95s | 人工</text>
+</g>
+
+<!-- ==================== 节点20: 完成 ==================== -->
+<g class="node" transform="translate(1000, 1060)">
+  <rect class="node-bg" width="200" height="100" rx="8" fill="#1a1f4e" stroke="#00ff88" stroke-width="2"/>
+  <rect x="0" y="0" width="200" height="25" rx="8" fill="#00ff88"/>
+  <rect x="0" y="17" width="200" height="8" fill="#00ff88"/>
+  <text x="10" y="17" fill="#0a0e27" font-size="11" font-weight="bold">✅ 完成</text>
+  <text x="10" y="40" fill="#00ff88" font-size="10">OUTPUT:</text>
+  <text x="10" y="55" fill="#aaa" font-size="9">商品上架(下架状态)</text>
+  <text x="10" y="70" fill="#aaa" font-size="9">导入模板_*.xlsx</text>
+  <text x="10" y="85" fill="#aaa" font-size="9">verify_*.png</text>
+  <text x="10" y="100" fill="#f39c12" font-size="10">⏱️ T+100s</text>
+</g>
+
+<!-- ==================== 连接线 ==================== -->
+<!-- 水平连接线 -->
+<path class="flow-line" d="M 280 160 L 320 160" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 520 160 L 560 160" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 780 160 L 820 160" fill="none" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 1060 160 L 1100 160" fill="none" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- Stage 1 → Stage 2 -->
+<path class="flow-line" d="M 1340 220 L 1340 320 L 300 320 L 300 420" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- Stage 2 水平连接 -->
+<path class="flow-line" d="M 300 480 L 340 480" fill="none" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 540 480 L 580 480" fill="none" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 780 480 L 820 480" fill="none" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 1040 480 L 1080 480" fill="none" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- 2.6 → 2.7 -->
+<path class="flow-line" d="M 1320 490 L 1320 490" fill="none" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- Stage 2 → Stage 3 -->
+<path class="flow-line" d="M 1320 560 L 1320 650 L 220 650 L 220 740" fill="none" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- Stage 3 水平连接 -->
+<path class="flow-line" d="M 340 800 L 500 800" fill="none" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 700 800 L 740 800" fill="none" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 940 800 L 980 800" fill="none" stroke="#f39c12" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 1180 800 L 1220 800" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+<path class="flow-line" d="M 1440 800 L 1480 800" fill="none" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- 完成 → 截图 -->
+<path class="flow-line" d="M 1200 1110 L 1480 1110" fill="none" stroke="#f39c12" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+<!-- ==================== 阶段标签 ==================== -->
+<text x="1600" y="180" fill="#3498db" font-size="12" font-weight="bold">STAGE 1</text>
+<text x="1600" y="195" fill="#888" font-size="10">EXTRACT</text>
+<text x="1500" y="470" fill="#9b59b6" font-size="12" font-weight="bold">STAGE 2</text>
+<text x="1500" y="485" fill="#888" font-size="10">EXCEL_PREPARE</text>
+<text x="1700" y="800" fill="#27ae60" font-size="12" font-weight="bold">STAGE 3</text>
+<text x="1700" y="815" fill="#888" font-size="10">ERP_IMPORT</text>
+
+<!-- ==================== 汇总信息 ==================== -->
+<g transform="translate(60, 1150)">
+  <rect width="350" height="40" rx="5" fill="#1a1f4e" stroke="#00d4ff" stroke-width="1"/>
+  <text x="15" y="18" fill="#00d4ff" font-size="10">📊 汇总</text>
+  <text x="15" y="32" fill="#aaa" font-size="9">总耗时: ~100秒 | IT: 5s | DT: 10s | 人工: 85s</text>
+</g>
+
+<!-- ==================== KPI指标 ==================== -->
+<g transform="translate(450, 1150)">
+  <rect width="400" height="40" rx="5" fill="#1a1f4e" stroke="#00ff88" stroke-width="1"/>
+  <text x="15" y="18" fill="#00ff88" font-size="10">📈 KPI</text>
+  <text x="15" y="32" fill="#aaa" font-size="9">成功率: 95%+ | 错误率: &lt;5% | 人工干预: 仅导入确认</text>
+</g>
+
+</svg>
+</div>
+
+<!-- ==================== 图例 ==================== -->
+<div class="legend">
+  <div style="color:#00d4ff;font-weight:bold;margin-bottom:10px;">图例 LEGEND</div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#3498db"></div>
+    <span>IT系统 (Yupoo/CDP)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#9b59b6"></div>
+    <span>DT数字转型 (脚本/规则)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#27ae60"></div>
+    <span>ERP系统</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#f39c12"></div>
+    <span>人工干预</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-line" style="background:#00d4ff"></div>
+    <span>数据流</span>
+  </div>
+</div>
+
+</body>
+</html>
