@@ -32,6 +32,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## 文件管理规则 (File Management Rules)
+
+> ⚠️ 违反以下规则将导致仓库散落，造成版本失控
+
+### 文件放置规范
+
+| 目录 | 用途 | 规则 |
+|------|------|------|
+| `scripts/` | 生产脚本 | 统一入口，禁止散落在根目录 |
+| `docs/` | 流程图/文档 | 只放 `.html`/`.md`/`.svg`，禁止放 `.py` |
+| `tests/` | 测试文件 | 统一入口 |
+| `logs/` | 日志输出 | 自动生成，禁止手动编辑 |
+| `screenshots/` | 截图留证 | 自动生成，禁止手动编辑 |
+| `.dumate/` | 临时草稿 | **禁止提交到 git**，仅本地使用 |
+
+### 禁止行为
+
+| 禁止项 | 原因 |
+|--------|------|
+| ❌ 根目录放 `.py` 脚本 | 污染仓库根目录 |
+| ❌ 根目录放 Excel/CSV | 应统一到 `inputs/` 或 `templates/` |
+| ❌ 根目录放 `.html` 流程图 | 应统一到 `docs/` |
+| ❌ 提交临时草稿 `.dumate/` | 包含业务敏感数据 |
+| ❌ 提交 `REVIEW*.md` 审查文件 | 一次性产出物 |
+| ❌ 提交 `.playwright-cli/` 会话 | 浏览器状态文件 |
+| ❌ 提交 `*.log` 日志文件 | 自动生成 |
+| ❌ 提交 `cookies.json` | 凭证文件 |
+
+### 每次提交前检查
+
+```bash
+# 检查是否有散落在根目录的文件
+ls *.py *.xlsx *.csv *.html 2>/dev/null | grep -v README
+
+# 检查是否有未跟踪的临时文件
+git status --short | grep "^??"
+```
+
+---
+
 ## 项目概述 (Project Overview)
 
 本仓库包含**两个独立生产级子系统**：
