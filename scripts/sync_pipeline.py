@@ -1216,8 +1216,8 @@ class SyncPipeline:
                             f"After base navigation, current URL: {erp_page.url}"
                         )
                         await erp_page.goto(erp_url)
-                        await erp_page.wait_for_load_state("networkidle", timeout=30000)
-                        await asyncio.sleep(5)
+                        await erp_page.wait_for_load_state("domcontentloaded", timeout=60000)
+                        await asyncio.sleep(8)
                         logger.info(
                             f"After product list navigation, current URL: {erp_page.url}"
                         )

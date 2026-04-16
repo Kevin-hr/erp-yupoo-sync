@@ -1,12 +1,40 @@
 # Project Memory (项目记忆)
 
+---
+
+## 2026-04-15 文档重构更新
+
+### 新增架构B: Excel中转批量导入
+
+**已验证的生产流程（双架构）**：
+
+| 架构 | 脚本 | 状态 | 验证文件 |
+|------|------|------|----------|
+| **A: Playwright流水线** | `sync_pipeline.py` | ✅ 生产可用 | 6阶段全流程 |
+| **B: Excel中转** | `generate_saint_excel*.py` | ✅ DESCENTE/SAINT验证 | `DESCENTE_232338513_商品导入模板.xlsx` |
+
+**Excel模板33列完整字段映射**（已验证）：
+- B=标题, E=首图, F=其他图片(换行), H=属性(品牌|款号|颜色|尺码)
+- I=上架(**强制N**), J=物流模板, P=重量(kg)
+- X/Y=规格(Color+Size), AB=SKU值, AD=售价, AE=原价
+
+**文档更新清单**（v8.0/v2.0/v1.2）：
+- `docs/pipeline_flowchart.html` → v8.0 ✅
+- `docs/yupoo_to_erp_excel_flow.html` → v2.0 ✅
+- `.planning/PRD.md` → v1.2 ✅
+- `CLAUDE.md` → 双架构+Excel字段 ✅
+- `SOP.md` → v2.0 ✅
+- `MVP_EXECUTION_GUIDE.md` → v3.0 ✅
+
+---
+
 ## 核心规则补充 (Core Rule Addendum) - 2026-04-03
 
 ### ⚠️ 登录故障即刻停报 (Immediate Stop on Login Issues)
 
-*   **禁止项 (Prohibited)**: 
-    *   **终端运行 Playwright 脚本 (Shell-driven Playwright)**: 严禁通过终端后台命令（如 `python scripts/sync_pipeline.py`）启动浏览器。此类操作由于“指纹受污染” (Contaminated Fingerprints) 且无法进行环境级别的身份对齐，已正式废弃。
-*   **动作 (Action)**: 
+*   **禁止项 (Prohibited)**:
+    *   **终端运行 Playwright 脚本 (Shell-driven Playwright)**: 严禁通过终端后台命令（如 `python scripts/sync_pipeline.py`）启动浏览器。此类操作由于"指纹受污染" (Contaminated Fingerprints) 且无法进行环境级别的身份对齐，已正式废弃。
+*   **动作 (Action)**:
     *   **切换至原生工具 (Native Subagent)**: 所有浏览器交互必须通过 AI 平台的原生 `browser_subagent` 及其集成工具完成。
     *   **立即停止 (Immediate Stop)**: 严禁尝试暴力破解或持续重试。
     *   **输出结果 (Direct Report)**: 必须保留现场错误日志/截图，并第一时间通知用户。
@@ -22,24 +50,27 @@
 - **修复**: 使用稳健的选择器。
 - **2026-04-03**: 发现后台搜索 ID 不可靠（索引延迟）。
 - **优化经验**: 改用直连 `https://x.yupoo.com/gallery/<album_id>`，稳定性提升至 100%。
-- **2026-04-03**: Playwright 点击“全选”报错（Element outside viewport）。
+- **2026-04-03**: Playwright 点击"全选"报错（Element outside viewport）。
 - **技术突破**: 实施 `dispatch_event(selector, 'click')` 兜底机制，成功绕过 Yupoo 布局遮挡，完成 trial album `230251075` 提取。
-- **2026-04-07**: 陷入“完成偏见(Completion Bias)”，为强推进度在缺参情况下跳过了商品描述格式化，导致模板富文本区域的残留脏图片被一并带入新商品。
-- **底层防错修正 (Methodology)**: 
-  1) 构建硬性阻断校验：若缺失 `Brand Name` 坚决要求用户输入，禁止静默跳过 (`raise ValueError`)。 
+- **2026-04-07**: 陷入"完成偏见(Completion Bias)"，为强推进度在缺参情况下跳过了商品描述格式化，导致模板富文本区域的残留脏图片被一并带入新商品。
+- **底层防错修正 (Methodology)**:
+  1) 构建硬性阻断校验：若缺失 `Brand Name` 坚决要求用户输入，禁止静默跳过 (`raise ValueError`)。
   2) 在 `browser_subagent` 注入 JS 脚本彻底隔离风险，通过 `editor.querySelectorAll('img').forEach(img => img.remove())` 物理手段清扫模板的所有旧图片遗留。
 - **2026-04-07**: `sync_pipeline.py` / `erp_product_listing.py` 中由于静态类型识别缺失，导致 `urls` 被判定为 `list[Unknown]`，引发 `urls[:14]` 切片失败；同时伴随 `playwright.async_api` 导入异常。
 - **底层防错修正 (Methodology)**:
   1) **静态类型校验约束 (Static Typing Enforcement)**: 强行应用 Python 静态类型提示 (`typing.cast` 等)。在列表切割和高危传参之前，强制标注变量类型，不可依赖隐式推导。
   2) **环境依赖阻断 (Dependency Check)**: 针对关键依赖（如 Playwright）进行前置 `try...except ImportError` 引入声明，并给出确定性阻断错误日志，拒绝底层未知异常扩散。
 
+---
+
 ## 项目进展 (Progress)
 
 - **2026-04-03**: 完成决策认知系统 v2.0 Phase 1。
 - **2026-04-03**: 完成 `BAPE-芭比` 分类首个产品 (ID: 230251075) 的全流程同步验证。
-- **技术突破**: 发现 ERP 保存须填写 MOQ/重量/单价。通过自动化 Agent 补全默认值（0.5kg, 99元, MOQ 1），成功绕过表单校验，实现“一键上架”闭环。
+- **技术突破**: 发现 ERP 保存须填写 MOQ/重量/单价。通过自动化 Agent 补全默认值（0.5kg, 99元, MOQ 1），成功绕过表单校验，实现"一键上架"闭环。
 - **2026-04-07**: 成功使用 AI 原生 `browser_subagent` 处理 Yupoo 遗留专辑 (ID: 228499218)，在遭遇 AliYun 验证码时触发停报，经由用户手动解除后实现自动化断点续传（复制模板、清理旧图、插入链接并保存）。全面跑通人机协同(Human-in-the-Loop)自动化上架流程。
 - **2026-04-09**: `.github/RELEASE_SOP.md` 创建后，新会话/子 Agent 不会自动遵守。**根本原因**：文档是死的，不主动约束行为。**修正**：必须在 `CLAUDE.md` 业务红线中写入强制引用规则，文档才能真正生效。
+- **2026-04-15**: 新增架构B（Excel中转批量导入），验证 DESCENTE_232338513 和 SAINT_527345264973337 填充模板，重构全部文档至最新状态。
 
 ---
 
@@ -95,12 +126,13 @@
 | 保存验证 | URL含 `action=3` |
 
 ### 完整流水线验证成功 (Industrialized) ✅
+
 - **CDP XHR 拦截**：完美获取含 Hash 的完整路径，解决 404。
 - **Fresh Navigation**：解决 Vue 挂载失败，确保 `pkValues` 跳转后 UI 可交互。
 - **JS 注入上传**：成功绕过 URL 长度限制。
 - **最高规则**：强制 [下架] 状态，通过 `el-switch__core` 探测。
 - **GitHub Release**：版本 `v2.3.0` 已发布，存档工业化成果。
-- **playwright-cli**：终端原生浏览器 CLI，支持 `state-load/save`（完整 Cookie + localStorage 导出/导入），比 Python Playwright 的纯 Cookie 注入更完整，可解决 Yupoo/MrShopPlus 依赖 localStorage 的登录验证问题。
+- **playwright-cli**：终端原生浏览器 CLI，支持 `state-load/save`（完整 Cookie + localStorage 导出/导入）。
 
 ### 并发改造方向（待实现）
 
@@ -138,7 +170,6 @@
 | concurrent_batch_sync.py共享context Bug | L391-398 browser.contexts[0]被所有worker共享，违反独立浏览器红线 |
 | bare except静默吞异常 | sync_pipeline.py L275/346/497等处`except: pass` |
 | 日志无trace_id | logging.basicConfig无job_id/session_id字段 |
-| concurrent_batch_sync.py CDP模式违反独立浏览器红线 | L391-398共享context |
 
 ### 🆕 START（已验证事实）
 
@@ -161,6 +192,36 @@
 | 停止CLAUDE.md与代码脱节 | --resume等声称功能在代码中不存在 |
 | 停止bare except静默吞异常 | 多处`except: pass`应改为logger.warning或raise |
 
+---
+
+## ⚠️ P0 红线：禁止关闭持久化 Chrome（2026-04-14）
+
+**规则**：
+- ✅ 只能关闭自己创建的 page
+- ❌ 绝对禁止遍历 `ctx.pages` 全部关闭
+- ❌ 绝对禁止关闭已有的 page
+- **后果**：关闭最后一个 page → Chrome 退出 → CDP 断开 → 所有持久化连接失效
+
+**已验证的错误模式**：
+```python
+# ❌ 绝对禁止
+for pg in ctx.pages:
+    await pg.close()
+```
+
+```python
+# ✅ 正确
+if page_was_created:
+    await page.close()
+```
+
+**涉及文件**：
+- `extract_yupoo_info.py` ✅
+- `extract_album_232338513.py` ✅
+- 所有 CDP 连接脚本均须遵守
+
+---
+
 ### 审查结论：6个P0问题
 
 | # | 问题 | 来源 |
@@ -172,3 +233,62 @@
 | P0-5 | workflow.py核心编排无测试 | Agent-4 |
 | P0-6 | 无requirements.txt | Agent-5 |
 
+---
+
+## CDP Browser Page Cleanup Bug（2026-04-14）
+
+### 问题
+
+在 `extract_yupoo_info.py` 等脚本中，错误地遍历关闭 `ctx.pages` 里所有页面：
+
+```python
+# ❌ 错误代码（杀死 Chrome）
+for pg in ctx.pages:
+    await pg.close()
+# 结果：关闭最后一个 page → Chrome 退出 → CDP 连接断开
+```
+
+### 根因
+
+CDP 连接的是**已有 Chrome 实例**，共享同一个 BrowserContext。遍历 `ctx.pages` 关闭所有页面会杀死 Chrome 本身。
+
+### 正确做法
+
+```python
+# ✅ 正确代码（只关闭自己创建的）
+page_was_created = False
+for pg in ctx.pages:
+    try:
+        if album_id in pg.url and 'yupoo' in pg.url:
+            page = pg
+            page_was_created = False  # 已有的，不关闭
+            break
+    except:
+        pass
+
+if not page:
+    page = await ctx.new_page()
+    page_was_created = True  # 自己创建的，可以关闭
+
+# ... 使用 page ...
+
+if page_was_created:
+    await page.close()  # 只关闭自己创建的
+# 绝对不要：for pg in ctx.pages: await pg.close()
+```
+
+### 规则
+
+| 场景 | page_was_created | Cleanup |
+|------|-------------------|---------|
+| 找到已有 Yupoo page | `False` | **不关闭** |
+| 自己新建 page | `True` | 只关闭自己创建的 |
+
+### 已修复的文件
+
+- `extract_yupoo_info.py` ✅
+- `extract_album_232338513.py` ✅
+
+### Skill 更新
+
+已写入 `erp-spa-router/SKILL.md` 的 "CDP Browser Reuse — Page Cleanup Rule" 章节。
