@@ -233,7 +233,7 @@ pytest tests/test_sync_pipeline.py -v
 
 | Stage | 名称               | 核心动作                               | 关键约束                                    |
 | ----- | ------------------ | -------------------------------------- | ------------------------------------------- |
-| 1     | **EXTRACT**        | 直连 `/gallery/{id}` → CDP拦截 XHR 提取完整path | 必须XHR拦截获取含hash路径，禁止正则拼图 |
+| 1     | **EXTRACT**        | 直连 `/albums/{id}` → CDP拦截 XHR 提取完整path | 必须XHR拦截；分类页选择器用 `/albums/`（非 `/gallery/`） |
 | 2     | **PREPARE**        | URL换行分隔，格式化元数据，提取尺码      | 图片URL ≤14，超出截断                       |
 | 3     | **LOGIN**          | MrShopPlus Cookie认证                  | 优先加载 `logs/cookies.json`；独立browser context |
 | 4     | **NAVIGATE**       | 访问商品列表，定位模板商品，点击"复制"  | **严禁从0创建**；复制=SPA路由跳转，非新Tab |
@@ -261,7 +261,7 @@ pytest tests/test_sync_pipeline.py -v
 | L  | 标签       | -    | 英文逗号隔开                                      | DESCENTE,ALLTERRAIN,防水夹克             |
 | M  | 计量单位   | -    | 按计量单位Sheet填写                               | 件                                       |
 | N  | 商品备注   | -    | 最多50字                                          | `相册ID:232338513 | 款号:22-0975-91`      |
-| O  | 不记库存*  | ✅   | Y=不记 N=记                                       | N                                        |
+| O  | 不记库存*  | ✅   | Y=不记 N=记（跨境电商填Y）                              | Y                                        |
 | P  | 商品重量*  | ✅   | kg, 3位小数                                       | 0.8                                      |
 | X  | 规格1      | -    | Color+规格值                                      | `Color\nBlack`                           |
 | Y  | 规格2      | -    | Size+尺码详情                                     | `Size\nM: 肩宽46cm/胸围116cm...` |
@@ -344,6 +344,9 @@ npm install -g @playwright/cli@latest
 | 2026-04-09 | Cookie注入 ≠ Session保持 | Yupoo/MrShopPlus 依赖 localStorage；需 `state-save/load` 完整导出 |
 | 2026-04-14 | CDP连接Chrome遍历关闭所有page | **page_was_created flag**：只能关闭自己创建的page |
 | 2026-04-15 | Excel中转架构验证通过 | DESCENTE/SAINT 填充结果已验证，33列字段完整映射 |
+| 2026-04-16 | 分类页选择器返回0 | 选择器用 `/gallery/` 而非 `/albums/`；两者 URL 格式完全不同 |
+| 2026-04-16 | localStorage SecurityError | 必须在 `goto('https://x.yupoo.com/')` 建立 origin 后再注入 localStorage |
+| 2026-04-16 | page.evaluate() 多参数报错 | `evaluate("script", key, value)` → 改为 `"script", [key, value]` |
 
 ---
 
@@ -362,11 +365,12 @@ npm install -g @playwright/cli@latest
 
 ---
 
-## 项目状态 (2026-04-15)
+## 项目状态 (2026-04-16)
 
 | 模块 | 状态 | 说明 |
 |------|------|------|
 | Yupoo-to-ERP 同步流水线 (架构A) | ✅ **生产可用** | 单worker + CDP，6阶段全流程，商品已成功上架 |
 | Excel中转批量导入 (架构B) | ✅ **生产验证** | DESCENTE/SAINT Excel填充已验证，ERP导入成功 |
+| Yupoo 分类采集 (skill) | ✅ **选择器已修复** | `/gallery/` → `/albums/`，16 cookies session 持久化 |
 
-**This file updated: 2026-04-15**
+**This file updated: 2026-04-16**
