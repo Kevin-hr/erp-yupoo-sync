@@ -16,10 +16,11 @@
 - [x] **v2.0** CDP 工业级提取器 + 熔断机制 + 并发安全重构
 - [x] **v2.3.0** 强制下架审核 + 审计状态 + Cookie 过期检测
 - [x] **v3.0.0** 工业级同步流水线 v3：CDP 提取器 + Docker 容器化 + SOP.md
+- [x] **v3.1.0** Excel 中转站模式：BAPE_0418.xlsx + ERP 批量导入验证通过
 
 ### Active
 
-- [ ] **v3.1.0** Excel 中转站模式：Excel 模板填充 + ERP 批量导入（进行中）
+(暂无)
 
 ### Out of Scope
 
@@ -97,11 +98,11 @@ This document evolves at phase transitions and milestone boundaries.
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Excel 中转站架构 | 绕过 TinyMCE/表单操作脆弱环节，用 ERP 原生批量导入 | v3.1.0 进行中 |
+| Excel 中转站架构 | 绕过 TinyMCE/表单操作脆弱环节，用 ERP 原生批量导入 | v3.1.0 已完成 |
 | 强制下架审核 | 所有同步商品必须设为下架状态，禁止自动发布 | v2.3.0 已验证 |
 | CDP XHR 拦截提取 | 正则拼图图片外链 404，改用拦截 `/api/albums/{id}/photos` | v3.0.0 已验证 |
 | 单worker + CDP共享Chrome | 所有并发方案因 SPA 路由踩踏失败 | v2.3.0 已验证 |
 
 ---
 
-*Last updated: 2026-04-15 — v3.1.0 Excel中转站模式 started*
+*Last updated: 2026-04-18 — v3.1.0 Excel中转站模式已完成，BAPE_0418.xlsx验证通过*
