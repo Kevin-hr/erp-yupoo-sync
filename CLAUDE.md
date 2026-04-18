@@ -18,6 +18,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **JS 注入上传** | 必须使用 JS 绕过 textarea `maxlength=153` 限制 | URL 被截断导致上传失败       |
 | **独立浏览器上下文** | Yupoo 和 MrShopPlus 必须各自维护独立浏览器上下文，绝不共享Cookie或浏览器状态 | SPA路由踩踏/会话混淆        |
 | **CDP页面清理规则** | 只能关闭自己创建的page；绝对禁止遍历 `ctx.pages` 全部关闭 | 关闭最后一个page→Chrome退出 |
+| **Excel 操作强制路径** | 所有 Excel 编辑/创建/修改必须使用 `skills/minimax-xlsx` XML 流程；**禁止** openpyxl 往返编辑已有 .xlsx 文件 | 格式损坏/VBA丢失/公式破坏 |
+| **BAPE Excel 填充强制** | BAPE 商品必须使用 `erp-bape-excel-filler` skill，禁止手动编辑或 openpyxl 直写 | 数据不一致/字段缺失 |
+
+---
+
+## Skills 强制使用规则
+
+| Skill | 强制级别 | 说明 |
+|-------|---------|------|
+| `skills/minimax-xlsx/` | **P0 必须** | 所有 Excel 读取/创建/编辑/修复/校验必须使用 |
+| `erp-bape-excel-filler` (global) | **P0 必须** | BAPE 商品填充必须使用 |
+| `erp-excel-output` | P1 推荐 | ERP 商品导入模板输出时使用 |
+
+> ⚠️ **废弃脚本**：`scripts/bape_excel_filler.py` 已删除（openpyxl 往返编辑，违反 P0 规则）
 
 ---
 
@@ -43,8 +57,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `scripts/` | 生产脚本 | 统一入口，禁止散落在根目录 |
 | `docs/` | 流程图/文档 | 只放 `.html`/`.md`/`.svg`，禁止放 `.py` |
 | `tests/` | 测试文件 | 统一入口 |
-| `logs/` | 日志输出 | 自动生成，禁止手动编辑 |
+| `logs/` | 凭证、日志 | **仅限** `.log` / `.json`(凭证如 cookies.json)；**禁止** `.xlsx` / `.csv` / `.png` / `.html` / `.py` |
 | `screenshots/` | 截图留证 | 自动生成，禁止手动编辑 |
+| `inputs/` | 外部输入数据 | CSV/Excel 源文件（`bape_17款.xlsx` 等） |
+| `templates/` | Excel模板 | 商品导入模板（`商品导入模板*.xlsx`） |
+| `assets/` | 品牌静态资源 | Logo、水印等品牌素材 |
 | `.dumate/` | 临时草稿 | **禁止提交到 git**，仅本地使用 |
 
 ### 禁止行为
@@ -54,6 +71,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | ❌ 根目录放 `.py` 脚本 | 污染仓库根目录 |
 | ❌ 根目录放 Excel/CSV | 应统一到 `inputs/` 或 `templates/` |
 | ❌ 根目录放 `.html` 流程图 | 应统一到 `docs/` |
+| ❌ logs/ 放 `.xlsx` / `.csv` / `.png` / `.html` / `.py` | 违反目录用途，logs/ 仅限 `.log` 和凭证 `.json` |
 | ❌ 提交临时草稿 `.dumate/` | 包含业务敏感数据 |
 | ❌ 提交 `REVIEW*.md` 审查文件 | 一次性产出物 |
 | ❌ 提交 `.playwright-cli/` 会话 | 浏览器状态文件 |
@@ -63,8 +81,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 每次提交前检查
 
 ```bash
-# 检查是否有散落在根目录的文件
+# 检查是否有散落在根目录的文件（除 README 外）
 ls *.py *.xlsx *.csv *.html 2>/dev/null | grep -v README
+
+# 检查 logs/ 是否混入非日志文件
+ls logs/ | grep -vE "\.(log|json)$" | grep -vE "^(cookies|yupoo_cookies)\.json$"
 
 # 检查是否有未跟踪的临时文件
 git status --short | grep "^??"
@@ -79,7 +100,7 @@ git status --short | grep "^??"
 ### 1. Yupoo to MrShopPlus ERP 同步流水线（双架构）
 
 **架构A: Playwright 6阶段流水线** — 全自动、可截图留证，单worker约2分钟/商品
-**架构B: Excel中转批量导入** — 支持批量，验证文件：`DESCENTE_232338513_商品导入模板.xlsx` ✅
+**架构B: Excel中转批量导入** — 支持批量，验证文件：`DESCENTE_232338513_ENGLISH.xlsx` ✅
 
 ---
 
@@ -115,7 +136,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    A["Yupoo相册<br/>extract_*.py"] --> B[Excel模板填充<br/>商品导入模板.xlsx]
+    A["Yupoo相册<br/>extract_*.py"] --> B[Excel模板填充<br/>商品导入模板 (修改版1.0).xlsx]
     B --> C[ERP后台批量导入]
     C --> D["已验证文件:<br/>DESCENTE ✅ SAINT ✅"]
 ```
@@ -126,34 +147,18 @@ flowchart LR
 
 ```
 ERP/
-├── scripts/                          # 所有脚本入口
-│   ├── sync_pipeline.py              # ✅ 架构A主入口：6阶段流水线
-│   ├── extract_yupoo_info.py         # Yupoo 相册信息提取（XHR拦截）
-│   ├── extract_saint_product.py      # SAINT 商品信息提取
-│   ├── extract_saint_images.py       # SAINT 图片提取
-│   ├── fill_excel_from_yupoo.py      # 架构B：Yupoo数据填充Excel
-│   ├── yupoo_to_erp_excel.py         # 架构B：完整Excel中转流程
-│   ├── generate_saint_excel.py       # 架构B：SAINT Excel生成
-│   ├── generate_saint_excel_v2.py    # 架构B：SAINT Excel v2
-│   └── collect_yupoo_category.py      # Yupoo分类采集
-├── tests/
-│   └── test_sync_pipeline.py         # ✅ sync_pipeline.py 单元测试
-├── logs/                             # 凭证、日志、填充结果
-│   ├── sync_YYYYMMDD.log            # 同步流水线每日日志
-│   ├── cookies.json                 # MrShopPlus登录Cookie
-│   ├── yupoo_cookies.json           # Yupoo登录Cookie
-│   ├── pipeline_state.json          # 流水线断点状态
-│   └── *.xlsx                       # Excel填充结果
-├── screenshots/                      # 上架前截图留证
-├── docs/                            # 流程图文档
-│   ├── pipeline_flowchart.html      # ✅ 6阶段流水线流程图 v8.0
-│   └── yupoo_to_erp_excel_flow.html # ✅ Excel中转流程图 v2.0
-├── .planning/                        # 项目规划文档
+├── scripts/                          # 生产脚本（禁止放根目录）
+├── tests/                            # 测试文件
+├── logs/                             # 自动生成：凭证、日志
+├── screenshots/                      # 自动生成：上架前截图留证
+├── docs/                             # 流程图文档
+├── inputs/                           # 外部输入数据
+├── templates/                         # Excel模板
+├── skills/                           # Skills 工具集
+│   └── minimax-xlsx/                # ✅ Excel XML 操作（P0强制）
 ├── .github/
 │   └── RELEASE_SOP.md               # GitHub Release标准流程
-├── BROWSER_SUBAGENT_SOP.md          # 浏览器操作安全协议
-├── GEMINI.md                        # AI规则与决策原则
-├── memory.md                         # 项目经验教训
+├── BAPE_0418.xlsx                   # ✅ BAPE 唯一正确模板（6行×33列）
 └── CLAUDE.md                         # 本文件
 ```
 
@@ -210,16 +215,6 @@ python scripts/sync_pipeline.py --album-id 231019138 --use-cdp
 "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
 ```
 
-### 架构B: Excel填充命令
-
-```bash
-# DESCENTE Excel填充
-python scripts/generate_saint_excel_v2.py --brand DESCENTE --album-id 232338513
-
-# SAINT Excel填充
-python scripts/generate_saint_excel.py --album-id 527345264973337
-```
-
 ### 测试命令
 
 ```bash
@@ -242,34 +237,74 @@ pytest tests/test_sync_pipeline.py -v
 
 ---
 
-## Excel模板字段 (架构B: 商品导入模板.xlsx)
+## Excel模板字段 (BAPE: BAPE_0418.xlsx)
 
-> **验证文件**: `DESCENTE_232338513_商品导入模板.xlsx` ✅ | `SAINT_商品导入模板_填充.xlsx` ✅
+> **标准模板**: `BAPE_0418.xlsx`（唯一正确版本，6行×33列）
+> **批量输出**: `logs/bape_17款_批量_完整版.xlsx`（15个商品，64行）
+> **D/B一致性**: `scripts/verify_bape_d_name_field.py` 审计通过
 
-| 列 | 字段名     | 必填 | 填写规则                                          | 示例                                      |
-|----|-----------|------|---------------------------------------------------|------------------------------------------|
-| A  | 商品ID     | -    | 空=新增商品, 有ID=修改                            | （留空）                                 |
-| B  | 商品标题*  | ✅   | 最多255字符                                       | DESCENTE ALLTERRAIN BS W ZIP JACKET      |
-| C  | 副标题     | -    | 最多255字符                                       | DESCENTE 联名系列 男子防风防水夹克         |
-| D  | 商品描述   | -    | HTML代码                                          | `<p><a href="...">品牌</a></p><p>描述</p>` |
-| E  | 商品首图*  | ✅   | 单URL                                             | `http://pic.yupoo.com/lol2024/xxx.jpeg`  |
-| F  | 商品其他图片 | -   | 多个URL用换行分隔                                 | `url1\nurl2\nurl3`                          |
-| H  | 属性       | -    | `属性名|属性值` 换行分隔                           | `品牌|DESCENTE\n款号|22-0975-91` |
-| I  | 商品上架*  | ✅   | **Y=上架 N=下架（强制N）**                        | N                                        |
-| J  | 物流模板*  | ✅   | 系统已配置模板名                                  | 默认模板                                 |
-| K  | 类别名称   | -    | 英文逗号隔开                                      | 男装,外套                                |
-| L  | 标签       | -    | 英文逗号隔开                                      | DESCENTE,ALLTERRAIN,防水夹克             |
-| M  | 计量单位   | -    | 按计量单位Sheet填写                               | 件                                       |
-| N  | 商品备注   | -    | 最多50字                                          | `相册ID:232338513 | 款号:22-0975-91`      |
-| O  | 不记库存*  | ✅   | Y=不记 N=记（跨境电商填Y）                              | Y                                        |
-| P  | 商品重量*  | ✅   | kg, 3位小数                                       | 0.8                                      |
-| X  | 规格1      | -    | Color+规格值                                      | `Color\nBlack`                           |
-| Y  | 规格2      | -    | Size+尺码详情                                     | `Size\nM: 肩宽46cm/胸围116cm...` |
-| AB | SKU值      | -    | 格式: `Color:xxx\nSize:xxx`                      | `Color:Black\nSize:M`                     |
-| AC | SKU图片    | -    | 完整URL                                           | `http://pic.yupoo.com/...`               |
-| AD | 售价*      | ✅   | 2位小数                                           | 88.99                                    |
-| AE | 原价       | -    | 2位小数                                           | 149.99                                   |
-| AF | 库存       | -    | 最多9位整数                                       | 100                                      |
+### BAPE字段填充标准
+
+| 列 | 字段名 | 必填 | 填写值/来源 | 示例 |
+|----|--------|------|-------------|------|
+| B | 商品标题 | ✅ | `inputs/bape_17款.xlsx` A列 | `BAPE Big Ape Head Tee Black` |
+| D | 商品描述HTML | ✅ | `build_desc_html()` 生成，Name:字段=strip_brand(B) | 完整HTML（含Our Core Guarantees等段落） |
+| E | 商品首图 | ✅ | `bape_17款.xlsx` C列 | `http://pic.yupoo.com/...` |
+| F | 商品其他图片 | - | `bape_17款.xlsx` D列（`&#10;`解码） | 多URL换行分隔 |
+| H | 属性 | - | 固定值 `材质\|棉质` | BAPE_0418模板固定 |
+| I | 商品上架 | ✅ | 固定值 `N`（强制下架，人工审核后才改Y） | N |
+| J | 物流模板 | ✅ | 固定值 `Clothing` | BAPE_0418模板固定 |
+| K | 类别名称 | - | 固定值 `BAPE` | BAPE_0418模板固定 |
+| L | 标签 | - | =B列标题（脚本联动） | `BAPE Big Ape Head Tee Black` |
+| M | 计量单位 | - | 固定值 `件/个` | BAPE_0418模板固定 |
+| O | 不记库存 | ✅ | 固定值 `Y`（跨境电商不记库存） | Y |
+| P | 商品重量 | ✅ | 固定值 `0.3` | BAPE_0418模板固定 |
+| T | SEO标题 | - | `Stockx Replica Streetwear \| Top Quality 1:1 {B} - stockxshoesvip.net` | 动态生成 |
+| U | SEO描述 | - | `Buy Best 1:1 Replica Clothing on Stockxshoesvip.net. Perfect {B}. 100% safe shipping...` | 动态生成 |
+| V | SEO关键词 | - | =B列标题 | `BAPE Big Ape Head Tee Black` |
+| Y | 规格2 | - | `Size\nS\nM\nL\nXL`（来源：`bape_17款_批量_规格2.xlsx`） | BAPE批量专用 |
+| AB | SKU值(主) | - | 主行=`Size:S`；SKU子行=`Size:M/L/XL` | BAPE_0418模板固定 |
+| AD | 售价 | ✅ | 固定值 `59` | BAPE_0418模板固定 |
+| AE | 原价 | - | 固定值 `99` | BAPE_0418模板固定 |
+| AF | 库存 | - | 固定值 `999` | BAPE_0418模板固定 |
+
+### 禁止填写字段
+
+| 列 | 字段名 | 原因 |
+|----|--------|------|
+| A | 商品ID | 空=新增商品 |
+| C | 副标题 | 不需要 |
+| G | 关键信息 | 不需要 |
+| N | 商品备注 | 不需要 |
+| Q/R/S | 包装尺寸 | 不需要 |
+| W | SEO URL Handle | 自动生成 |
+| X | 规格1 | 不使用颜色规格 |
+| Z/AA | 规格3/4 | 不使用 |
+| AC | SKU图片 | 不使用 |
+| AG | SKU | 不使用 |
+
+### D列Name:字段一致性规则
+
+> **最高优先级**，违反即输出失败
+
+```
+B列商品标题:  BAPE LOGO RELAXED FIT TEE
+                        ── strip_brand ──
+D列 Name:字段:              LOGO RELAXED FIT TEE
+```
+
+`strip_brand()` 匹配：`BAPE/ xxx` 或 `BAPE xxx` 或纯 `BAPE ` 开头，贪婪去除品牌前缀。
+
+### SKU子行结构
+
+| 行 | AB | AD | AE | AF |
+|----|----|----|----|----|
+| 主Row | `Size:S` | 59 | 99 | 999 |
+| Row5 | `Size:M` | 59 | 99 | 999 |
+| Row6 | `Size:L` | 59 | 99 | 999 |
+| Row7 | `Size:XL` | 59 | 99 | 999 |
+
+每个商品占4行（1主行+3SKU子行），15商品共60行数据+4行表头=64行。
 
 **Sheet结构**: `商品信息` (主, 33列) + `计量单位` (辅助)
 
@@ -280,8 +315,6 @@ pytest tests/test_sync_pipeline.py -v
 | 约束 | 说明 |
 |------|------|
 | **单worker稳定** | `scripts/sync_pipeline.py` 单worker + CDP共享Chrome 是当前**唯一生产稳定**方案 |
-| **并发踩踏** | CDP共享Chrome + 多worker → ERP SPA路由互相踩踏，**所有并发方案均已废弃** |
-| **真正并发** | 每个worker需独立Chrome实例 + 不同CDP端口（9222/9223/...）+ subprocess隔离 |
 | **URL上传失败** | textarea `maxlength=153` 截断URL → 必须使用JS注入绕过 |
 | **Cookie刷新** | 会话Cookie需定期手动刷新 |
 | **CDP页面清理** | 只能关闭自己创建的page；绝对禁止遍历 `ctx.pages` 关闭 |
@@ -350,27 +383,54 @@ npm install -g @playwright/cli@latest
 
 ---
 
+## Skills 参考文档
+
+| Skill | 核心脚本 | 用途 |
+|-------|---------|------|
+| `skills/minimax-xlsx/` | `xlsx_reader.py` / `xlsx_pack.py` / `xlsx_unpack.py` | Excel 读写编校验 |
+| `erp-bape-excel-filler` (global skill) | `fill_bape_product.py` | BAPE 单品填充 ERP 模板 |
+
+---
+
 ## 参考文档
 
 | 文档 | 位置 | 用途 |
 |------|------|------|
 | **RELEASE_SOP.md** | `/.github/RELEASE_SOP.md` | GitHub Release标准流程 |
-| **BROWSER_SUBAGENT_SOP.md** | `/BROWSER_SUBAGENT_SOP.md` | 浏览器操作安全协议 |
-| **GEMINI.md** | `/GEMINI.md` | AI规则与决策原则 |
-| **memory.md** | `/memory.md` | 项目历史变更与全面复盘 |
-| **PRD.md** | `/.planning/PRD.md` | 需求文档 |
-| **pipeline_flowchart.html** | `/docs/pipeline_flowchart.html` | ✅ 6阶段流水线流程图 |
-| **yupoo_to_erp_excel_flow.html** | `/docs/yupoo_to_erp_excel_flow.html` | ✅ Excel中转流程图 |
-| **SOP.md** | `/SOP.md` | 部署与运维标准流程 |
+| **BAPE_0418.xlsx** | `/BAPE_0418.xlsx` | ✅ BAPE 唯一正确模板（6行×33列，商品信息+计量单位） |
 
 ---
 
-## 项目状态 (2026-04-16)
+## 项目状态 (2026-04-18)
 
 | 模块 | 状态 | 说明 |
 |------|------|------|
 | Yupoo-to-ERP 同步流水线 (架构A) | ✅ **生产可用** | 单worker + CDP，6阶段全流程，商品已成功上架 |
 | Excel中转批量导入 (架构B) | ✅ **生产验证** | DESCENTE/SAINT Excel填充已验证，ERP导入成功 |
+| BAPE Excel填充 (架构B变体) | ✅ **生产验证** | `BAPE_0418.xlsx` 为唯一正确模板 |
 | Yupoo 分类采集 (skill) | ✅ **选择器已修复** | `/gallery/` → `/albums/`，16 cookies session 持久化 |
 
-**This file updated: 2026-04-16**
+---
+
+## Docker 支持 (Docker Support)
+
+```bash
+# 构建镜像
+docker compose build
+
+# 运行同步（标准模式）
+docker compose run erp-sync --album-id 231967755
+
+# 运行同步（CDP持久化模式）
+docker compose run erp-sync --album-id 231967755 --use-cdp --cdp-url http://host.docker.internal:9222
+```
+
+**This file updated: 2026-04-18**
+
+---
+
+## 更新记录 (Changelog)
+
+| 日期 | 更新内容 |
+|------|---------|
+| 2026-04-18 | 新增 `skills/minimax-xlsx/` P0强制规则；`erp-bape-excel-filler` 改为 global skill；清理废弃脚本和散落文件 |
