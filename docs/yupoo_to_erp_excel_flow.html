@@ -379,6 +379,17 @@ ws = wb['商品信息']  # 第3行开始填数据</div>
         </tbody>
     </table>
 
+    <div class="node node-excel" data-step="2.3">
+        <strong>2.3 SEO/规格补充（以 BAPE_0418.xlsx 标准为准）</strong><br>
+        <table>
+            <tr><td>T(SEO标题)</td><td>动态生成，最多5000字符</td></tr>
+            <tr><td>U(SEO描述)</td><td>动态生成，最多5000字符</td></tr>
+            <tr><td>V(SEO关键词)</td><td>推荐 =B列标题（英文逗号分隔多关键词）</td></tr>
+            <tr><td>W(SEO URL Handle)</td><td>允许英文/数字/-；BAPE_0418 示例为留空</td></tr>
+            <tr><td>Y(规格2)</td><td>服装通用：固定 Size\\nS\\nM\\nL\\nXL（多行换行格式）</td></tr>
+        </table>
+    </div>
+
     <div class="node node-p0" data-step="⚠️ P0">
         <strong>强制规则: 必须设为下架状态</strong><br>
         I列(商品上架) 必须填写 <strong>N</strong>！<br>

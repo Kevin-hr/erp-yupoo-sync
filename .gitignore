@@ -11,6 +11,8 @@ logs/*.log
 diag_*.py
 test_*.py
 diag_*/
+_test_*.py
+parse_gucci_final.py
 
 # Review 审查文件（一次性产出物）
 REVIEW*.md
@@ -54,6 +56,24 @@ nul
 
 # 根目录Excel临时文件（禁止提交）
 TheNorthface_04.xlsx
+
+# PyInstaller 产物（禁止提交）
+build/
+dist/
+*.spec
+*.exe
+
+# 浏览器抓取缓存（禁止提交）
+gucci_cat/
+yupoo/
+
+# 批量导入输出文件（禁止提交）
+*_ERP导入模板_*.xlsx
+test_output*.xlsx
+gucci_albums.csv
+
+# 一次性输入样例（禁止提交）
+67款*.xlsx
 
 # 诊断脚本（禁止提交）
 *_diag.py
