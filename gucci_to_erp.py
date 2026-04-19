@@ -19,7 +19,8 @@ from copy import copy
 import re
 import sys
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from typing import DefaultDict, Iterable, List, Optional, Tuple
+from collections import Counter, defaultdict
 
 import openpyxl
 
@@ -153,26 +154,36 @@ def _clear_row_values(ws, row_idx: int, max_col: int = 33) -> None:
         ws.cell(row_idx, c).value = None
 
 
-def _make_unique_title(title: str, used_titles: set) -> str:
+def _make_unique_title(title: str, used_titles: set, seq: Optional[int] = None) -> str:
     base = str(title or "").strip()
     if not base:
         return base
 
     max_len = 255
-    key = base.lower()
-    if key not in used_titles:
-        used_titles.add(key)
-        return base[:max_len]
+    if seq is None:
+        candidate = base[:max_len]
+    else:
+        suffix = f" {seq:02d}"
+        keep_len = max_len - len(suffix)
+        candidate = f"{base[:keep_len].rstrip()}{suffix}"
+
+    ckey = candidate.lower()
+    if ckey not in used_titles:
+        used_titles.add(ckey)
+        return candidate
 
     idx = 2
     while True:
-        suffix = f" ({idx})"
+        if seq is None:
+            suffix = f" ({idx})"
+        else:
+            suffix = f" {seq:02d}-{idx}"
         keep_len = max_len - len(suffix)
-        candidate = f"{base[:keep_len].rstrip()}{suffix}"
-        ckey = candidate.lower()
-        if ckey not in used_titles:
-            used_titles.add(ckey)
-            return candidate
+        candidate2 = f"{base[:keep_len].rstrip()}{suffix}"
+        ckey2 = candidate2.lower()
+        if ckey2 not in used_titles:
+            used_titles.add(ckey2)
+            return candidate2
         idx += 1
 
 
@@ -289,6 +300,13 @@ def build_erp_xlsx(
 
     errors: List[str] = []
     used_titles: set = set()
+    title_counts = Counter()
+    for src_row in products:
+        t = str(src_row[1]).strip() if len(src_row) > 1 and src_row[1] is not None else ""
+        if t:
+            title_counts[t.lower()] += 1
+
+    title_seq: DefaultDict[str, int] = defaultdict(int)
     for i, src_row in enumerate(products, start=1):
         title = str(src_row[1]).strip() if len(src_row) > 1 and src_row[1] is not None else ""
         if not title:
@@ -306,7 +324,12 @@ def build_erp_xlsx(
             _apply_row_snapshot(ws_out, group_start + j, base_snaps[j])
 
         r0 = group_start
-        unique_title = _make_unique_title(title, used_titles)
+        tkey = title.lower()
+        seq = None
+        if title_counts.get(tkey, 0) > 1:
+            title_seq[tkey] += 1
+            seq = title_seq[tkey]
+        unique_title = _make_unique_title(title, used_titles, seq=seq)
         desc_html = _build_desc_html(unique_title, brand)
         seo_title = _build_seo_title(unique_title)
         seo_desc = _build_seo_desc(unique_title)
