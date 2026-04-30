@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **CDP页面清理规则** | 只能关闭自己创建的page；绝对禁止遍历 `ctx.pages` 全部关闭 | 关闭最后一个page→Chrome退出 |
 | **Excel 操作强制路径** | 所有 Excel 编辑/创建/修改必须使用 `skills/minimax-xlsx` XML 流程；**禁止** openpyxl 往返编辑已有 .xlsx 文件 | 格式损坏/VBA丢失/公式破坏 |
 | **BAPE Excel 填充强制** | BAPE 商品必须使用 `erp-bape-excel-filler` skill，禁止手动编辑或 openpyxl 直写 | 数据不一致/字段缺失 |
+| **ERP 导入 Excel 全局标准** | 权威标准文档：`docs/ERP_EXCEL_STANDARD_BAPE0418.md` (v2.0.0 锁定) | 所有 Excel 导入操作依据 |
 
 ---
 
@@ -158,7 +159,7 @@ ERP/
 │   └── minimax-xlsx/                # ✅ Excel XML 操作（P0强制）
 ├── .github/
 │   └── RELEASE_SOP.md               # GitHub Release标准流程
-├── templates/BAPE_0418.xlsx          # ✅ ERP 导入 Excel 标准模板
+├── BAPE_0418.xlsx                   # ✅ BAPE 唯一正确模板（6行×33列）
 └── CLAUDE.md                         # 本文件
 ```
 
@@ -170,13 +171,13 @@ ERP/
 
 ```bash
 # Yupoo
-YUPOO_USERNAME=***
-YUPOO_PASSWORD=***
+YUPOO_USERNAME=lol2024
+YUPOO_PASSWORD=9longt#3
 YUPOO_BASE_URL=https://lol2024.x.yupoo.com/albums
 
 # MrShopPlus ERP
-ERP_USERNAME=***
-ERP_PASSWORD=***
+ERP_USERNAME=zhiqiang
+ERP_PASSWORD=123qazwsx
 ERP_BASE_URL=https://www.mrshopplus.com
 ```
 
@@ -237,11 +238,76 @@ pytest tests/test_sync_pipeline.py -v
 
 ---
 
-## ERP 导入 Excel 标准（以 BAPE_0418 为准）
+## Excel模板字段 (BAPE: BAPE_0418.xlsx)
 
-- 权威模板：templates/BAPE_0418.xlsx
-- 标准文档：docs/ERP_EXCEL_STANDARD_BAPE0418.md
-- 关键红线：I列必须 N（下架）；图片总数 ≤ 14；SKU 子行只填 AB/AD/AE/AF；B列标题必须唯一（重复需去重编号）
+> **标准模板**: `BAPE_0418.xlsx`（唯一正确版本，6行×33列）
+> **批量输出**: `logs/bape_17款_批量_完整版.xlsx`（15个商品，64行）
+> **D/B一致性**: `scripts/verify_bape_d_name_field.py` 审计通过
+
+### BAPE字段填充标准
+
+| 列 | 字段名 | 必填 | 填写值/来源 | 示例 |
+|----|--------|------|-------------|------|
+| B | 商品标题 | ✅ | `inputs/bape_17款.xlsx` A列 | `BAPE Big Ape Head Tee Black` |
+| D | 商品描述HTML | ✅ | `build_desc_html()` 生成，Name:字段=strip_brand(B) | 完整HTML（含Our Core Guarantees等段落） |
+| E | 商品首图 | ✅ | `bape_17款.xlsx` C列 | `http://pic.yupoo.com/...` |
+| F | 商品其他图片 | - | `bape_17款.xlsx` D列（`&#10;`解码） | 多URL换行分隔 |
+| H | 属性 | - | 固定值 `材质\|棉质` | BAPE_0418模板固定 |
+| I | 商品上架 | ✅ | 固定值 `N`（强制下架，人工审核后才改Y） | N |
+| J | 物流模板 | ✅ | 固定值 `Clothing` | BAPE_0418模板固定 |
+| K | 类别名称 | - | 固定值 `BAPE` | BAPE_0418模板固定 |
+| L | 标签 | - | =B列标题（脚本联动） | `BAPE Big Ape Head Tee Black` |
+| M | 计量单位 | - | 固定值 `件/个` | BAPE_0418模板固定 |
+| O | 不记库存 | ✅ | 固定值 `Y`（跨境电商不记库存） | Y |
+| P | 商品重量 | ✅ | 固定值 `0.3` | BAPE_0418模板固定 |
+| T | SEO标题 | - | `Stockx Replica Streetwear \| Top Quality 1:1 {B} - stockxshoesvip.net` | 动态生成 |
+| U | SEO描述 | - | `Buy Best 1:1 Replica Clothing on Stockxshoesvip.net. Perfect {B}. 100% safe shipping...` | 动态生成 |
+| V | SEO关键词 | - | =B列标题 | `BAPE Big Ape Head Tee Black` |
+| Y | 规格2 | - | `Size\nS\nM\nL\nXL`（来源：`bape_17款_批量_规格2.xlsx`） | BAPE批量专用 |
+| AB | SKU值(主) | - | 主行=`Size:S`；SKU子行=`Size:M/L/XL` | BAPE_0418模板固定 |
+| AD | 售价 | ✅ | 固定值 `59` | BAPE_0418模板固定 |
+| AE | 原价 | - | 固定值 `99` | BAPE_0418模板固定 |
+| AF | 库存 | - | 固定值 `999` | BAPE_0418模板固定 |
+
+### 禁止填写字段
+
+| 列 | 字段名 | 原因 |
+|----|--------|------|
+| A | 商品ID | 空=新增商品 |
+| C | 副标题 | 不需要 |
+| G | 关键信息 | 不需要 |
+| N | 商品备注 | 不需要 |
+| Q/R/S | 包装尺寸 | 不需要 |
+| W | SEO URL Handle | 自动生成 |
+| X | 规格1 | 不使用颜色规格 |
+| Z/AA | 规格3/4 | 不使用 |
+| AC | SKU图片 | 不使用 |
+| AG | SKU | 不使用 |
+
+### D列Name:字段一致性规则
+
+> **最高优先级**，违反即输出失败
+
+```
+B列商品标题:  BAPE LOGO RELAXED FIT TEE
+                        ── strip_brand ──
+D列 Name:字段:              LOGO RELAXED FIT TEE
+```
+
+`strip_brand()` 匹配：`BAPE/ xxx` 或 `BAPE xxx` 或纯 `BAPE ` 开头，贪婪去除品牌前缀。
+
+### SKU子行结构
+
+| 行 | AB | AD | AE | AF |
+|----|----|----|----|----|
+| 主Row | `Size:S` | 59 | 99 | 999 |
+| Row5 | `Size:M` | 59 | 99 | 999 |
+| Row6 | `Size:L` | 59 | 99 | 999 |
+| Row7 | `Size:XL` | 59 | 99 | 999 |
+
+每个商品占4行（1主行+3SKU子行），15商品共60行数据+4行表头=64行。
+
+**Sheet结构**: `商品信息` (主, 33列) + `计量单位` (辅助)
 
 ---
 
@@ -332,17 +398,17 @@ npm install -g @playwright/cli@latest
 | 文档 | 位置 | 用途 |
 |------|------|------|
 | **RELEASE_SOP.md** | `/.github/RELEASE_SOP.md` | GitHub Release标准流程 |
-| **BAPE_0418.xlsx** | `/templates/BAPE_0418.xlsx` | ✅ ERP 导入 Excel 标准模板（商品信息+计量单位） |
+| **BAPE_0418.xlsx** | `/BAPE_0418.xlsx` | ✅ BAPE 唯一正确模板（6行×33列，商品信息+计量单位） |
 
 ---
 
-## 项目状态 (2026-04-18)
+## 项目状态 (2026-04-29)
 
 | 模块 | 状态 | 说明 |
 |------|------|------|
 | Yupoo-to-ERP 同步流水线 (架构A) | ✅ **生产可用** | 单worker + CDP，6阶段全流程，商品已成功上架 |
 | Excel中转批量导入 (架构B) | ✅ **生产验证** | DESCENTE/SAINT Excel填充已验证，ERP导入成功 |
-| BAPE Excel填充 (架构B变体) | ✅ **生产验证** | `templates/BAPE_0418.xlsx` 为唯一正确模板 |
+| BAPE Excel填充 (架构B变体) | ✅ **生产验证** | `BAPE_0418.xlsx` 为唯一正确模板 |
 | Yupoo 分类采集 (skill) | ✅ **选择器已修复** | `/gallery/` → `/albums/`，16 cookies session 持久化 |
 
 ---
@@ -360,7 +426,7 @@ docker compose run erp-sync --album-id 231967755
 docker compose run erp-sync --album-id 231967755 --use-cdp --cdp-url http://host.docker.internal:9222
 ```
 
-**This file updated: 2026-04-18**
+**This file updated: 2026-04-29**
 
 ---
 

@@ -34,6 +34,8 @@ __pycache__/
 *.pyo
 .venv/
 venv/
+.ruff_cache/
+.workbuddy/
 
 # Playwright CLI 会话
 .playwright-cli/
@@ -86,3 +88,12 @@ fill_excel_from_yupoo.py
 start_chrome_*.bat
 start_chrome_*.sh
 sync_category.py
+
+# Inputs 临时文件（禁止提交）
+inputs/*.xlsx
+inputs/*.csv
+inputs/*.json
+!inputs/.gitkeep
+
+# 规划文件（禁止提交）
+.planning/
